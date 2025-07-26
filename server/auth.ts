@@ -41,7 +41,7 @@ export async function setupAuth(app: Express) {
     baseURL: baseUrl,
     clientID: process.env.AUTH0_CLIENT_ID,
     // CORRECTED LINE: Removed the extra "://"
-    issuerBaseURL: `https://${process.env.AUTH0_DOMAIN}`,
+    issuerBaseURL: process.env.AUTH0_DOMAIN?.startsWith("https://") ? process.env.AUTH0_DOMAIN : `https://${process.env.AUTH0_DOMAIN}`,
     clientSecret: process.env.AUTH0_CLIENT_SECRET,
     routes: {
       login: '/api/auth/login',
