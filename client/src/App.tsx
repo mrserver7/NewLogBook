@@ -1,4 +1,5 @@
-import { Switch, Route } from "wouter";
+
+import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -18,46 +19,38 @@ import UserManagement from "@/pages/admin/UserManagement";
 import SystemAnalytics from "@/pages/admin/SystemAnalytics";
 import UserCases from "@/pages/admin/UserCases";
 
-function Router() {
+function ProtectedRoute({ component: Component }) {
   const { isAuthenticated, isLoading } = useAuth();
 
-  return (
-    <Switch>
-      {isLoading || !isAuthenticated ? (
-        <Route path="/" component={Landing} />
-      ) : (
-        <>
-          <Route path="/" component={Dashboard} />
-          <Route path="/cases" component={CaseList} />
-          <Route path="/new-case" component={NewCase} />
-          <Route path="/patients" component={Patients} />
-          <Route path="/analytics" component={Analytics} />
-          <Route path="/export" component={Export} />
-          <Route path="/settings" component={Settings} />
-          <Route path="/admin/users" component={UserManagement} />
-          <Route path="/admin/analytics" component={SystemAnalytics} />
-          <Route path="/admin/user-cases/:userId" component={UserCases} />
-        </>
-      )}
-      {/* Fallback to 404 */}
-      <Route component={NotFound} />
-    </Switch>
-  );
+  if (isLoading) return null;
+
+  return isAuthenticated ? <Component /> : <Redirect to="/" />;
 }
 
-function App() {
+function Router() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <TooltipProvider>
+      <TooltipProvider>
+        <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+          <Switch>
+            <Route path="/" component={Landing} />
+            <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} />} />
+            <Route path="/cases" component={() => <ProtectedRoute component={CaseList} />} />
+            <Route path="/new-case" component={() => <ProtectedRoute component={NewCase} />} />
+            <Route path="/patients" component={() => <ProtectedRoute component={Patients} />} />
+            <Route path="/analytics" component={() => <ProtectedRoute component={Analytics} />} />
+            <Route path="/export" component={() => <ProtectedRoute component={Export} />} />
+            <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
+            <Route path="/admin/users" component={() => <ProtectedRoute component={UserManagement} />} />
+            <Route path="/admin/analytics" component={() => <ProtectedRoute component={SystemAnalytics} />} />
+            <Route path="/admin/user-cases" component={() => <ProtectedRoute component={UserCases} />} />
+            <Route component={NotFound} />
+          </Switch>
           <Toaster />
-          <Router />
-        </TooltipProvider>
-      </ThemeProvider>
+        </ThemeProvider>
+      </TooltipProvider>
     </QueryClientProvider>
   );
 }
 
-export default App;
-
-
+export default Router;
