@@ -12,10 +12,7 @@ import { storage } from './storage';
  * and ensures session stability.
  */
 export async function setupAuth(app: Express) {
-  const baseUrl =
-    process.env.BASE_URL ||
-    process.env.RENDER_EXTERNAL_URL ||
-    `http://localhost:${process.env.PORT || '5000'}`;
+  const baseUrl = process.env.RENDER_EXTERNAL_URL || process.env.BASE_URL || `http://localhost:${process.env.PORT || '5000'}`;
 
   // Initialize the memory store
   const MemoryStore = memorystore(session);
@@ -28,7 +25,10 @@ export async function setupAuth(app: Express) {
       resave: false,
       saveUninitialized: false,
       proxy: true, // Add this line
-      cookie: { secure: true }, // Add this line
+      cookie: {
+        secure: true,
+        sameSite: 'none' // Add this line
+      },
       store: new MemoryStore({
         checkPeriod: 86400000, // prune expired entries every 24h
       }),
