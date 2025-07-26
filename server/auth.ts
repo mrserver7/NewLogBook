@@ -27,6 +27,8 @@ export async function setupAuth(app: Express) {
       secret: process.env.SESSION_SECRET || 'a truly random secret should be here',
       resave: false,
       saveUninitialized: false,
+      proxy: true, // Add this line
+      cookie: { secure: true }, // Add this line
       store: new MemoryStore({
         checkPeriod: 86400000, // prune expired entries every 24h
       }),
