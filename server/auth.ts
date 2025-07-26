@@ -6,61 +6,71 @@ import { storage } from './storage';
 
 /**
  * Configure and attach Auth0 authentication middleware to an Express app.
- *
- * This function now explicitly sets up a session middleware using an in-memory
- * store, which is then used by the Auth0 middleware. This resolves conflicts
- * and ensures session stability.
+ * - Middleware and session order is CRUCIAL for cloud deployments like Render.com.
  */
 export async function setupAuth(app: Express) {
-  const baseUrl = process.env.RENDER_EXTERNAL_URL || process.env.BASE_URL || `http://localhost:${process.env.PORT || '5000'}`;
+  // CRUCIAL: Trust proxy headers (needed for correct secure cookies on Render.com)
+  app.set('trust proxy', 1);
 
-  // Initialize the memory store
+  // Use persistent (memory) session store (swap for PG or Redis if desired)
   const MemoryStore = memorystore(session);
 
-  // 1. Session Middleware
-  // We must configure the session middleware *before* the Auth0 middleware.
+  // Session middleware: must come BEFORE auth middleware!
   app.use(
     session({
-      secret: process.env.SESSION_SECRET || 'a truly random secret should be here',
+      secret: process.env.SESSION_SECRET || 'you-must-set-a-SESSION_SECRET',
       resave: false,
       saveUninitialized: false,
-      proxy: true, // Add this line
+      proxy: true,
       cookie: {
-        secure: true,
-        sameSite: 'none' // Add this line
+        secure: true,        // Only send cookie over HTTPS
+        sameSite: 'none',    // Required for cross-origin (Auth0) flows
+        httpOnly: true,
       },
       store: new MemoryStore({
-        checkPeriod: 86400000, // prune expired entries every 24h
+        checkPeriod: 86400000, // Prune expired entries every 24h
       }),
     })
   );
 
-  // 2. Auth0 OIDC Middleware Configuration
+  // Auth0 OIDC Middleware Configuration
+  const baseUrl =
+    process.env.RENDER_EXTERNAL_URL ||
+    process.env.BASE_URL ||
+    `http://localhost:${process.env.PORT || '5000'}`;
+
   const config = {
     authRequired: false,
     auth0Logout: true,
-    secret: process.env.SESSION_SECRET, // Should be the same secret
+    secret: process.env.SESSION_SECRET,
     baseURL: baseUrl,
     clientID: process.env.AUTH0_CLIENT_ID,
-    // CORRECTED LINE: Removed the extra "://"
-    issuerBaseURL: process.env.AUTH0_DOMAIN?.startsWith("https://") ? process.env.AUTH0_DOMAIN : `https://${process.env.AUTH0_DOMAIN}`,
+    issuerBaseURL: process.env.AUTH0_DOMAIN?.startsWith('https://')
+      ? process.env.AUTH0_DOMAIN
+      : `https://${process.env.AUTH0_DOMAIN}`,
     clientSecret: process.env.AUTH0_CLIENT_SECRET,
     routes: {
       login: '/api/auth/login',
       callback: '/api/auth/callback',
       logout: '/api/auth/logout',
     },
+    session: {
+      rolling: true,
+      cookie: {
+        secure: true,
+        sameSite: 'none',
+        httpOnly: true,
+      }
+    }
   } as any;
 
-  // Attach the Auth0 OIDC middleware. It will automatically use the session.
+  // Attach the Auth0 OIDC middleware. It uses the above session.
   app.use(auth(config));
 }
 
 /**
- * Middleware to ensure that a request is authenticated. If the user is
- * authenticated via Auth0, this middleware will upsert the user's record
- * and attach a `req.user.claims` object. If not authenticated, it responds
- * with HTTP 401.
+ * Middleware to ensure a request is authenticated.
+ * - Upserts the user in DB and attaches `req.user.claims`.
  */
 export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
   try {
@@ -71,7 +81,7 @@ export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
     const userInfo: any = req.oidc.user || {};
     const id: string = userInfo.sub;
     const email: string = userInfo.email;
-    
+
     let firstName: string = userInfo.given_name || '';
     let lastName: string = userInfo.family_name || '';
     if (!firstName && userInfo.name) {
@@ -79,7 +89,7 @@ export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
       firstName = parts[0] || '';
       lastName = parts.slice(1).join(' ') || '';
     }
-    
+
     if (id) {
       await storage.upsertUser({
         id,
