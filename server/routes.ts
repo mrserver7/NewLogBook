@@ -121,7 +121,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      // Attempt to load the user from the database.  If the user does not
+      // yet exist (for example, the dummy user provided by the local auth
+      // middleware), create a basic user record on the fly.  This avoids
+      // returning `null` on first login and allows the client to treat the
+      // request as authenticated.
+      let user = await storage.getUser(userId);
+      if (!user) {
+        user = await storage.upsertUser({
+          id: userId,
+          email: req.user.claims.email,
+          firstName: req.user.claims.first_name,
+          lastName: req.user.claims.last_name,
+        });
+      }
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
