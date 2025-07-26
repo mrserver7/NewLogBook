@@ -52,6 +52,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
 
+  /**
+   * Support legacy or misconfigured callback paths.
+   *
+   * Some deployments may incorrectly configure the Auth0 callback URL with an
+   * extra `/cases` prefix (e.g. `https://example.com/cases/api/auth/callback`).
+   * There is no route at `/cases/api/auth/callback` in this application, so such
+   * requests result in a 404.  To gracefully handle this scenario, redirect any
+   * request to `/cases/api/auth/callback` to the correct callback route
+   * (`/api/auth/callback`) while preserving the query string.  This ensures
+   * authentication flows complete successfully even if the callback URL was set
+   * with the wrong base path.
+   */
+  app.get('/cases/api/auth/callback', (req, res) => {
+    const qsIndex = req.originalUrl.indexOf('?');
+    const qs = qsIndex >= 0 ? req.originalUrl.slice(qsIndex) : '';
+    res.redirect(302, `/api/auth/callback${qs}`);
+  });
+
   // Serve uploaded files statically
   app.use('/api/uploads', express.static(uploadsDir));
 
