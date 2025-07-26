@@ -2,7 +2,7 @@ import type { Express, RequestHandler } from 'express';
 import { auth } from 'express-openid-connect';
 import session from 'express-session';
 import memorystore from 'memorystore';
-import { storage } from './storage';
+import { storage } from './storage-simple';
 
 /**
  * Configure and attach Auth0 authentication middleware to an Express app.

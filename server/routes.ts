@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage } from "./storage-simple";
 // Use a local authentication module instead of the Replit‑specific one
 import { setupAuth, isAuthenticated } from "./auth";
 import { z } from "zod";

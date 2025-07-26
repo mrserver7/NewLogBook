@@ -1,21 +1,30 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 /**
- * Example placeholder for authentication hook.
- * Replace this with Auth0 SPA SDK or your actual auth logic.
+ * Authentication hook that fetches user information from the API
  */
 export function useAuth() {
-  // Example state, adjust to your authentication solution
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    // Implement your client-side auth logic here (JWT, fetch user, etc)
-    // setUser({ ... });
-  }, []);
+  const { data: user, isLoading, error } = useQuery({
+    queryKey: ["/api/auth/user"],
+    queryFn: async () => {
+      try {
+        return await apiRequest("GET", "/api/auth/user");
+      } catch (error: any) {
+        // If user is not authenticated, return null instead of throwing
+        if (error?.status === 401) {
+          return null;
+        }
+        throw error;
+      }
+    },
+    retry: false,
+  });
 
   return {
     user,
     isAuthenticated: !!user,
-    // add login, logout, etc. as needed
+    isLoading,
+    error
   };
 }
