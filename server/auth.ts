@@ -24,7 +24,7 @@ export async function setupAuth(app: Express) {
       proxy: true,
       cookie: {
         secure: true,        // Only send cookie over HTTPS
-        sameSite: 'none',    // Required for cross-origin (Auth0) flows
+        sameSite: 'None',    // Required for cross-origin (Auth0) flows
         httpOnly: true,
       },
       store: new MemoryStore({
@@ -58,7 +58,7 @@ export async function setupAuth(app: Express) {
       rolling: true,
       cookie: {
         secure: true,
-        sameSite: 'none',
+        sameSite: 'None',
         httpOnly: true,
       }
     }
