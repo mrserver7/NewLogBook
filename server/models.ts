@@ -145,6 +145,15 @@ const userPreferencesSchema = new Schema({
   exportSettings: { type: Schema.Types.Mixed },
   dashboardSettings: { type: Schema.Types.Mixed },
   notificationSettings: { type: Schema.Types.Mixed },
+  aiSettings: {
+    selectedModel: { type: String },
+    modelTier: { type: String, enum: ['free', 'premium'] },
+    enableAgent: { type: Boolean, default: false },
+    apiUsage: {
+      requestsThisMonth: { type: Number, default: 0 },
+      lastRequestDate: { type: Date },
+    },
+  },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

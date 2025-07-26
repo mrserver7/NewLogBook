@@ -266,6 +266,15 @@ export const insertUserPreferencesSchema = z.object({
   exportSettings: z.any().optional(),
   dashboardSettings: z.any().optional(),
   notificationSettings: z.any().optional(),
+  aiSettings: z.object({
+    selectedModel: z.string().optional(),
+    modelTier: z.enum(['free', 'premium']).optional(),
+    enableAgent: z.boolean().optional(),
+    apiUsage: z.object({
+      requestsThisMonth: z.number().optional(),
+      lastRequestDate: z.date().optional(),
+    }).optional(),
+  }).optional(),
 });
 
 export type InsertUserPreferences = z.infer<typeof insertUserPreferencesSchema>;

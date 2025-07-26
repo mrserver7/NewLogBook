@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useThemeContext } from "@/components/ThemeProvider";
@@ -41,6 +42,16 @@ export default function Settings() {
     emailNotifications: true,
     pushNotifications: false,
     weeklyReports: true,
+    // AI Settings
+    aiSettings: {
+      selectedModel: "",
+      modelTier: "free" as "free" | "premium",
+      enableAgent: false,
+      apiUsage: {
+        requestsThisMonth: 0,
+        lastRequestDate: null as Date | null,
+      },
+    },
   });
 
   const { data: templates, isLoading: templatesLoading } = useQuery({
@@ -50,6 +61,33 @@ export default function Settings() {
   const { data: preferences } = useQuery({
     queryKey: ["/api/user-preferences"],
   });
+
+  const { data: aiModels } = useQuery({
+    queryKey: ["/api/ai/models"],
+  });
+
+  // Update local state when preferences are loaded
+  useEffect(() => {
+    if (preferences) {
+      setUserSettings(prev => ({
+        ...prev,
+        defaultAnesthesiaType: preferences.defaultAnesthesiaType || "",
+        defaultInstitution: preferences.defaultInstitution || "",
+        emailNotifications: preferences.notificationSettings?.emailNotifications ?? true,
+        pushNotifications: preferences.notificationSettings?.pushNotifications ?? false,
+        weeklyReports: preferences.notificationSettings?.weeklyReports ?? true,
+        aiSettings: {
+          selectedModel: preferences.aiSettings?.selectedModel || "",
+          modelTier: preferences.aiSettings?.modelTier || "free",
+          enableAgent: preferences.aiSettings?.enableAgent || false,
+          apiUsage: {
+            requestsThisMonth: preferences.aiSettings?.apiUsage?.requestsThisMonth || 0,
+            lastRequestDate: preferences.aiSettings?.apiUsage?.lastRequestDate || null,
+          },
+        },
+      }));
+    }
+  }, [preferences]);
 
   const updateUserMutation = useMutation({
     mutationFn: async (userData: any) => {
@@ -164,6 +202,7 @@ export default function Settings() {
         pushNotifications: userSettings.pushNotifications,
         weeklyReports: userSettings.weeklyReports,
       },
+      aiSettings: userSettings.aiSettings,
     });
   };
 
@@ -428,6 +467,177 @@ export default function Settings() {
             </CardContent>
           </Card>
         </div>
+
+        {/* AI Model Settings */}
+        <Card className="bg-light-surface dark:bg-dark-surface border border-gray-200 dark:border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+              <i className="fas fa-robot mr-2 text-purple-600"></i>
+              AI Assistant Settings
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="enableAgent">Enable AI Assistant</Label>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Allow AI to help with case documentation and analysis
+                </p>
+              </div>
+              <Switch
+                id="enableAgent"
+                checked={userSettings.aiSettings.enableAgent}
+                onCheckedChange={(checked) => 
+                  setUserSettings({ 
+                    ...userSettings, 
+                    aiSettings: { ...userSettings.aiSettings, enableAgent: checked }
+                  })
+                }
+              />
+            </div>
+
+            {userSettings.aiSettings.enableAgent && (
+              <>
+                <Separator />
+                
+                <div>
+                  <Label>Model Tier</Label>
+                  <div className="flex gap-4 mt-2">
+                    <div 
+                      className={`flex-1 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        userSettings.aiSettings.modelTier === 'free' 
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                          : 'border-gray-200 dark:border-gray-700'
+                      }`}
+                      onClick={() => setUserSettings({ 
+                        ...userSettings, 
+                        aiSettings: { ...userSettings.aiSettings, modelTier: 'free', selectedModel: '' }
+                      })}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium text-gray-900 dark:text-gray-100">Free Tier</h4>
+                        <Badge variant="secondary">Free</Badge>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Basic AI features with limited monthly requests
+                      </p>
+                      <div className="mt-2 text-xs text-gray-500">
+                        • Up to 150 requests/month
+                        • Standard response time
+                        • Basic medical assistance
+                      </div>
+                    </div>
+                    
+                    <div 
+                      className={`flex-1 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        userSettings.aiSettings.modelTier === 'premium' 
+                          ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' 
+                          : 'border-gray-200 dark:border-gray-700'
+                      }`}
+                      onClick={() => setUserSettings({ 
+                        ...userSettings, 
+                        aiSettings: { ...userSettings.aiSettings, modelTier: 'premium', selectedModel: '' }
+                      })}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium text-gray-900 dark:text-gray-100">Premium Tier</h4>
+                        <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">Premium</Badge>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Advanced AI models with enhanced capabilities
+                      </p>
+                      <div className="mt-2 text-xs text-gray-500">
+                        • Up to 1,000 requests/month
+                        • Advanced reasoning models
+                        • Priority support
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="selectedModel">AI Model</Label>
+                  <Select 
+                    value={userSettings.aiSettings.selectedModel} 
+                    onValueChange={(value) => 
+                      setUserSettings({ 
+                        ...userSettings, 
+                        aiSettings: { ...userSettings.aiSettings, selectedModel: value }
+                      })
+                    }
+                  >
+                    <SelectTrigger className="bg-light-elevated dark:bg-dark-elevated border-0">
+                      <SelectValue placeholder="Select an AI model..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {aiModels?.filter((model: any) => model.tier === userSettings.aiSettings.modelTier).map((model: any) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          <div className="flex items-center justify-between w-full">
+                            <div>
+                              <span className="font-medium">{model.name}</span>
+                              {model.recommended && (
+                                <Badge variant="secondary" className="ml-2 text-xs">Recommended</Badge>
+                              )}
+                              <p className="text-xs text-gray-500">{model.provider}</p>
+                            </div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {userSettings.aiSettings.selectedModel && aiModels && (
+                    <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      {(() => {
+                        const selectedModel = aiModels.find((model: any) => model.id === userSettings.aiSettings.selectedModel);
+                        return selectedModel ? (
+                          <div>
+                            <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                              {selectedModel.description}
+                            </p>
+                            <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400">
+                              <div>Context Length: {selectedModel.contextLength.toLocaleString()}</div>
+                              <div>Monthly Limit: {selectedModel.requestsPerMonth}</div>
+                              {selectedModel.costPerRequest && (
+                                <div>Cost: ${selectedModel.costPerRequest}/request</div>
+                              )}
+                            </div>
+                            <div className="mt-2">
+                              <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Features:</p>
+                              <ul className="text-xs text-gray-600 dark:text-gray-400 list-disc list-inside">
+                                {selectedModel.features.map((feature: string, idx: number) => (
+                                  <li key={idx}>{feature}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        ) : null;
+                      })()}
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                  <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Usage This Month</h4>
+                  <div className="text-sm text-blue-700 dark:text-blue-300">
+                    {userSettings.aiSettings.apiUsage.requestsThisMonth} / {
+                      aiModels?.find((model: any) => model.id === userSettings.aiSettings.selectedModel)?.requestsPerMonth || 0
+                    } requests used
+                  </div>
+                  <div className="mt-2 h-2 bg-blue-200 dark:bg-blue-800 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-blue-600 dark:bg-blue-400 transition-all duration-300"
+                      style={{ 
+                        width: `${Math.min(100, (userSettings.aiSettings.apiUsage.requestsThisMonth / 
+                          (aiModels?.find((model: any) => model.id === userSettings.aiSettings.selectedModel)?.requestsPerMonth || 1)) * 100)}%` 
+                      }}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Case Templates */}
         <Card className="bg-light-surface dark:bg-dark-surface border border-gray-200 dark:border-gray-700">

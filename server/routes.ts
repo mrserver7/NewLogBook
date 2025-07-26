@@ -643,6 +643,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI model configuration routes
+  app.get('/api/ai/models', isAuthenticated, async (req: any, res) => {
+    try {
+      const { AI_MODELS } = await import('./ai-config');
+      res.json(AI_MODELS);
+    } catch (error) {
+      console.error("Error fetching AI models:", error);
+      res.status(500).json({ message: "Failed to fetch AI models" });
+    }
+  });
+
+  app.get('/api/ai/models/:tier', isAuthenticated, async (req: any, res) => {
+    try {
+      const { tier } = req.params;
+      if (tier !== 'free' && tier !== 'premium') {
+        return res.status(400).json({ message: "Invalid tier. Must be 'free' or 'premium'" });
+      }
+      
+      const { getModelsByTier } = await import('./ai-config');
+      const models = getModelsByTier(tier as 'free' | 'premium');
+      res.json(models);
+    } catch (error) {
+      console.error("Error fetching AI models by tier:", error);
+      res.status(500).json({ message: "Failed to fetch AI models" });
+    }
+  });
+
+  app.post('/api/ai/validate-access', isAuthenticated, async (req: any, res) => {
+    try {
+      const { modelId, userTier } = req.body;
+      
+      if (!modelId || !userTier) {
+        return res.status(400).json({ message: "Model ID and user tier are required" });
+      }
+      
+      const { validateModelAccess } = await import('./ai-config');
+      const hasAccess = validateModelAccess(modelId, userTier);
+      
+      res.json({ hasAccess, modelId, userTier });
+    } catch (error) {
+      console.error("Error validating model access:", error);
+      res.status(500).json({ message: "Failed to validate model access" });
+    }
+  });
+
   // Admin routes - only accessible by admin users
   const requireAdmin = async (req: any, res: any, next: any) => {
     try {

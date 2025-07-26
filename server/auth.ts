@@ -7,6 +7,7 @@ import { storage } from './storage';
 /**
  * Configure and attach Auth0 authentication middleware to an Express app.
  * - Middleware and session order is CRUCIAL for cloud deployments like Render.com.
+ * - In development, use simple mock authentication
  */
 export async function setupAuth(app: Express) {
   // CRUCIAL: Trust proxy headers (needed for correct secure cookies on Render.com)
@@ -23,8 +24,8 @@ export async function setupAuth(app: Express) {
       saveUninitialized: false,
       proxy: true,
       cookie: {
-        secure: true,        // Only send cookie over HTTPS
-        sameSite: 'none',    // Required for cross-origin (Auth0) flows
+        secure: process.env.NODE_ENV === 'production',        // Only send cookie over HTTPS in production
+        sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',    // Required for cross-origin (Auth0) flows in production
         httpOnly: true,
       },
       store: new MemoryStore({
@@ -33,39 +34,78 @@ export async function setupAuth(app: Express) {
     })
   );
 
-  // Auth0 OIDC Middleware Configuration
-  const baseUrl =
-    process.env.RENDER_EXTERNAL_URL ||
-    process.env.BASE_URL ||
-    `http://localhost:${process.env.PORT || '5000'}`;
+  // In development, use mock authentication
+  if (process.env.NODE_ENV === 'development') {
+    // Mock login route
+    app.get('/api/auth/login', (req: any, res) => {
+      req.session.user = {
+        sub: 'dev-user-123',
+        email: 'dev@casecurator.com',
+        given_name: 'Dev',
+        family_name: 'User',
+        name: 'Dev User'
+      };
+      res.redirect('/dashboard');
+    });
 
-  const config = {
-    authRequired: false,
-    auth0Logout: true,
-    secret: process.env.SESSION_SECRET,
-    baseURL: baseUrl,
-    clientID: process.env.AUTH0_CLIENT_ID,
-    issuerBaseURL: process.env.AUTH0_DOMAIN?.startsWith('https://')
-      ? process.env.AUTH0_DOMAIN
-      : `https://${process.env.AUTH0_DOMAIN}`,
-    clientSecret: process.env.AUTH0_CLIENT_SECRET,
-    routes: {
-      login: '/api/auth/login',
-      callback: '/api/auth/callback',
-      logout: '/api/auth/logout',
-    },
-    session: {
-      rolling: true,
-      cookie: {
-        secure: true,
-        sameSite: 'none',
-        httpOnly: true,
+    // Mock logout route
+    app.get('/api/auth/logout', (req: any, res) => {
+      req.session.destroy((err: any) => {
+        if (err) console.error('Session destroy error:', err);
+        res.redirect('/');
+      });
+    });
+
+    // Mock user info middleware
+    app.use((req: any, res, next) => {
+      if (req.session?.user) {
+        req.oidc = {
+          isAuthenticated: () => true,
+          user: req.session.user
+        };
+      } else {
+        req.oidc = {
+          isAuthenticated: () => false,
+          user: null
+        };
       }
-    }
-  } as any;
+      next();
+    });
+  } else {
+    // Production Auth0 configuration
+    const baseUrl =
+      process.env.RENDER_EXTERNAL_URL ||
+      process.env.BASE_URL ||
+      `http://localhost:${process.env.PORT || '5000'}`;
 
-  // Attach the Auth0 OIDC middleware. It uses the above session.
-  app.use(auth(config));
+    const config = {
+      authRequired: false,
+      auth0Logout: true,
+      secret: process.env.SESSION_SECRET,
+      baseURL: baseUrl,
+      clientID: process.env.AUTH0_CLIENT_ID,
+      issuerBaseURL: process.env.AUTH0_DOMAIN?.startsWith('https://')
+        ? process.env.AUTH0_DOMAIN
+        : `https://${process.env.AUTH0_DOMAIN}`,
+      clientSecret: process.env.AUTH0_CLIENT_SECRET,
+      routes: {
+        login: '/api/auth/login',
+        callback: '/api/auth/callback',
+        logout: '/api/auth/logout',
+      },
+      session: {
+        rolling: true,
+        cookie: {
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+          httpOnly: true,
+        }
+      }
+    } as any;
+
+    // Attach the Auth0 OIDC middleware. It uses the above session.
+    app.use(auth(config));
+  }
 }
 
 /**
