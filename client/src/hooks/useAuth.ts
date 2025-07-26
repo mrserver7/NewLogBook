@@ -1,40 +1,120 @@
-// NewLogBook/client/src/hooks/useAuth.ts
+// NewLogBook/server/auth.ts
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback } from "react";
+import type { Express, RequestHandler } from 'express';
+import { auth } from 'express-openid-connect';
+import session from 'express-session';
+import memorystore from 'memorystore';
+import { storage } from './storage';
 
-export function useAuth() {
-  const queryClient = useQueryClient();
+/**
+ * Configure and attach Auth0 authentication middleware to an Express app.
+ *
+ * This function now explicitly sets up a session middleware using an in-memory
+ * store, which is then used by the Auth0 middleware. This resolves conflicts
+ * and ensures session stability.
+ */
+export async function setupAuth(app: Express) {
+  const baseUrl = process.env.RENDER_EXTERNAL_URL || process.env.BASE_URL || `http://localhost:${process.env.PORT || '5000'}`;
 
-  const { data, isLoading, isError } = useQuery(
-    ["me"],
-    async () => {
-      // This is the corrected API endpoint
-      const res = await fetch("/api/auth/user", { 
-        credentials: "include", 
-      });
-      if (!res.ok) return null;
-      return res.json();
-    },
-    {
-      retry: false,
-    }
+  // Initialize the memory store
+  const MemoryStore = memorystore(session);
+  
+  // This is crucial for Render/proxy environments
+  // It allows express-session to trust the X-Forwarded-Proto header
+  app.set('trust proxy', 1);
+
+  // 1. Session Middleware
+  // We must configure the session middleware *before* the Auth0 middleware.
+  app.use(
+    session({
+      secret: process.env.SESSION_SECRET || 'a truly random secret should be here',
+      resave: false,
+      saveUninitialized: false,
+      // 👇 ADDED/UPDATED a more robust cookie configuration for production
+      cookie: {
+        secure: true, // Ensures cookies are sent only over HTTPS
+        sameSite: 'none', // Required for cross-site auth flows
+        httpOnly: true,
+      },
+      store: new MemoryStore({
+        checkPeriod: 86400000, // prune expired entries every 24h
+      }),
+    })
   );
 
-  const logout = useCallback(async () => {
-    await fetch("/api/auth/logout", {
-      method: "POST",
-      credentials: "include",
-    });
-    queryClient.invalidateQueries(["me"]);
-  }, [queryClient]);
+  // 2. Auth0 OIDC Middleware Configuration
+  const config = {
+    authRequired: false,
+    auth0Logout: true,
+    secret: process.env.SESSION_SECRET, // Should be the same secret
+    baseURL: baseUrl,
+    clientID: process.env.AUTH0_CLIENT_ID,
+    issuerBaseURL: process.env.AUTH0_DOMAIN?.startsWith("https://") ? process.env.AUTH0_DOMAIN : `https://${process.env.AUTH0_DOMAIN}`,
+    clientSecret: process.env.AUTH0_CLIENT_SECRET,
+    routes: {
+      login: '/api/auth/login',
+      callback: '/api/auth/callback',
+      logout: '/api/auth/logout',
+    },
+    // 👇 ADDED this block to handle cookies correctly behind a proxy
+    session: {
+      cookie: {
+        secure: true,
+        sameSite: 'none',
+        httpOnly: true,
+      }
+    }
+  } as any;
 
-  return {
-    // I also simplified this line for you
-    user: data, 
-    isAuthenticated: !!data,
-    isLoading,
-    isError,
-    logout,
-  };
+  // Attach the Auth0 OIDC middleware. It will automatically use the session.
+  app.use(auth(config));
 }
+
+/**
+ * Middleware to ensure that a request is authenticated. If the user is
+ * authenticated via Auth0, this middleware will upsert the user's record
+ * and attach a `req.user.claims` object. If not authenticated, it responds
+ * with HTTP 401.
+ */
+export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
+  try {
+    if (!req.oidc || !req.oidc.isAuthenticated()) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const userInfo: any = req.oidc.user || {};
+    const id: string = userInfo.sub;
+    const email: string = userInfo.email;
+    
+    let firstName: string = userInfo.given_name || '';
+    let lastName: string = userInfo.family_name || '';
+    if (!firstName && userInfo.name) {
+      const parts = String(userInfo.name).split(' ');
+      firstName = parts[0] || '';
+      lastName = parts.slice(1).join(' ') || '';
+    }
+    
+    if (id) {
+      await storage.upsertUser({
+        id,
+        email,
+        firstName,
+        lastName,
+      });
+      // Attach a claims object for backward compatibility
+      req.user = {
+        claims: {
+          sub: id,
+          email,
+          first_name: firstName,
+          last_name: lastName,
+        },
+      };
+    }
+
+    return next();
+  } catch (error) {
+    console.error('Authentication error:', error);
+    return res.status(500).json({ message: 'Authentication error' });
+  }
+};
