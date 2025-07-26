@@ -1,0 +1,142 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(250, 50%, 98%);
+  --foreground: hsl(224, 71%, 4%);
+  --muted: hsl(220, 14%, 96%);
+  --muted-foreground: hsl(220, 9%, 46%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(224, 71%, 4%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(224, 71%, 4%);
+  --border: hsl(220, 13%, 91%);
+  --input: hsl(220, 13%, 91%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(210, 40%, 98%);
+  --secondary: hsl(220, 14%, 96%);
+  --secondary-foreground: hsl(220, 9%, 15%);
+  --accent: hsl(220, 14%, 96%);
+  --accent-foreground: hsl(220, 9%, 15%);
+  --destructive: hsl(0, 84%, 60%);
+  --destructive-foreground: hsl(60, 9%, 98%);
+  --ring: hsl(224, 71%, 4%);
+  --radius: 0.5rem;
+  
+  /* Custom theme colors */
+  --light-bg: hsl(250, 50%, 98%);
+  --light-surface: hsl(0, 0%, 100%);
+  --light-elevated: hsl(220, 14%, 96%);
+  --dark-bg: hsl(224, 71%, 4%);
+  --dark-surface: hsl(224, 46%, 10%);
+  --dark-elevated: hsl(224, 36%, 14%);
+}
+
+.dark {
+  --background: hsl(224, 71%, 4%);
+  --foreground: hsl(210, 40%, 98%);
+  --muted: hsl(223, 47%, 11%);
+  --muted-foreground: hsl(215, 20%, 65%);
+  --popover: hsl(224, 71%, 4%);
+  --popover-foreground: hsl(210, 40%, 98%);
+  --card: hsl(224, 71%, 4%);
+  --card-foreground: hsl(210, 40%, 98%);
+  --border: hsl(215, 27%, 17%);
+  --input: hsl(215, 27%, 17%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(210, 40%, 98%);
+  --secondary: hsl(215, 27%, 17%);
+  --secondary-foreground: hsl(210, 40%, 98%);
+  --accent: hsl(215, 27%, 17%);
+  --accent-foreground: hsl(210, 40%, 98%);
+  --destructive: hsl(0, 62%, 30%);
+  --destructive-foreground: hsl(210, 40%, 98%);
+  --ring: hsl(216, 12%, 84%);
+  
+  /* Custom theme colors for dark mode */
+  --light-bg: hsl(224, 71%, 4%);
+  --light-surface: hsl(224, 46%, 10%);
+  --light-elevated: hsl(224, 36%, 14%);
+  --dark-bg: hsl(224, 71%, 4%);
+  --dark-surface: hsl(224, 46%, 10%);
+  --dark-elevated: hsl(224, 36%, 14%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased;
+    background-color: var(--light-bg);
+    color: var(--foreground);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  .dark body {
+    background-color: var(--dark-bg);
+  }
+}
+
+@layer utilities {
+  .bg-light-bg {
+    background-color: var(--light-bg);
+  }
+  
+  .bg-light-surface {
+    background-color: var(--light-surface);
+  }
+  
+  .bg-light-elevated {
+    background-color: var(--light-elevated);
+  }
+  
+  .bg-dark-bg {
+    background-color: var(--dark-bg);
+  }
+  
+  .bg-dark-surface {
+    background-color: var(--dark-surface);
+  }
+  
+  .bg-dark-elevated {
+    background-color: var(--dark-elevated);
+  }
+
+  .glassmorphism {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.1);
+  }
+  
+  .glassmorphism-dark {
+    backdrop-filter: blur(10px);
+    background: rgba(26, 26, 46, 0.8);
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+  }
+  
+  .chart-gradient {
+    background: linear-gradient(135deg, hsl(207, 90%, 54%) 0%, hsl(173, 80%, 40%) 100%);
+  }
+  
+  .card-hover {
+    transition: all 0.3s ease;
+  }
+  
+  .card-hover:hover {
+    transform: translateY(-2px);
+  }
+}
