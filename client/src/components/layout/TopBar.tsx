@@ -84,7 +84,7 @@ export default function TopBar({ title, subtitle, onNewCase }: TopBarProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => window.location.href = "/api/logout"}
+            onClick={() => window.location.href = "/api/auth/logout"}
             className="p-2 rounded-xl bg-light-elevated dark:bg-dark-elevated hover:bg-red-100 dark:hover:bg-red-900 text-red-600 dark:text-red-400"
           >
             <LogOut className="h-4 w-4" />

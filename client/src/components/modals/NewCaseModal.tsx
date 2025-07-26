@@ -117,7 +117,7 @@ export default function NewCaseModal({ isOpen, onClose }: NewCaseModalProps) {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/api/auth/login";
         }, 500);
         return;
       }

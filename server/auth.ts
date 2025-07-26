@@ -1,64 +1,96 @@
-import session from 'express-session';
 import type { Express, RequestHandler } from 'express';
-import memorystore from 'memorystore';
+import { auth } from 'express-openid-connect';
+import { storage } from './storage';
 
 /**
- * This file provides a very simple authentication and session layer for
- * local development and deployment environments outside of Replit.  It
- * uses an in‑memory session store (backed by `memorystore`) to avoid
- * any database dependency.  All requests are treated as authenticated
- * and a dummy user object is attached to the request.
- */
-
-const MemoryStore = memorystore(session);
-
-/**
- * Return a session middleware configured with a memorystore.  The
- * session lifetime is one week.  In a production deployment you
- * should consider a more persistent session store, such as redis or
- * MongoDB, and enabling secure cookies.
- */
-export function getSession() {
-  const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
-  const sessionStore = new MemoryStore({ checkPeriod: sessionTtl });
-  return session({
-    secret: process.env.SESSION_SECRET || 'change_this_secret',
-    store: sessionStore,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      secure: false,
-      maxAge: sessionTtl,
-    },
-  });
-}
-
-/**
- * Set up basic authentication.  This adds the session middleware to
- * the express app and trusts proxies for correct IP handling.  No
- * external identity provider is used.
+ * Configure and attach Auth0 authentication middleware to an Express app.
+ *
+ * The configuration values are read from environment variables:
+ * - AUTH0_DOMAIN: your Auth0 tenant domain (e.g. "dev-abc123.us.auth0.com")
+ * - AUTH0_CLIENT_ID: the client ID for your Auth0 application
+ * - AUTH0_CLIENT_SECRET: the client secret for your Auth0 application
+ * - SESSION_SECRET: a random string used to sign session cookies
+ * - BASE_URL: the base URL of your application (e.g. "https://example.com")
+ *
+ * The middleware registers routes at `/api/auth/login`, `/api/auth/callback`
+ * and `/api/auth/logout` to handle the OAuth flow.  You should ensure
+ * these paths are configured as allowed callback/logout URLs in the Auth0
+ * dashboard.  Authentication is not required on every route (authRequired: false)
+ * so that unauthenticated users can access public pages.
  */
 export async function setupAuth(app: Express) {
-  app.set('trust proxy', 1);
-  app.use(getSession());
+  const baseUrl =
+    process.env.BASE_URL ||
+    process.env.RENDER_EXTERNAL_URL ||
+    `http://localhost:${process.env.PORT || '5000'}`;
+
+  const config = {
+    authRequired: false,
+    auth0Logout: true,
+    secret: process.env.SESSION_SECRET || 'change_this_secret',
+    baseURL: baseUrl,
+    clientID: process.env.AUTH0_CLIENT_ID,
+    issuerBaseURL: `https://${process.env.AUTH0_DOMAIN}`,
+    clientSecret: process.env.AUTH0_CLIENT_SECRET,
+    routes: {
+      login: '/api/auth/login',
+      callback: '/api/auth/callback',
+      logout: '/api/auth/logout',
+    },
+  } as any;
+
+  // Attach the Auth0 OIDC middleware.  It adds `req.oidc` to every request.
+  app.use(auth(config));
 }
 
 /**
- * Authentication middleware.  Attaches a dummy user to every request
- * and allows the request to proceed.  Replace this implementation
- * with real authentication logic if needed.
+ * Middleware to ensure that a request is authenticated.  If the user is
+ * authenticated via Auth0, this middleware will upsert the user's record
+ * into MongoDB (using the storage layer) and attach a `req.user.claims`
+ * object to mirror the structure expected by the existing routes.  If the
+ * request is not authenticated, it responds with HTTP 401.
  */
-export const isAuthenticated: RequestHandler = (req, _res, next) => {
-  // Attach a dummy user with a unique identifier.  In a real
-  // application you should verify an access token or session here.
-  req.user = {
-    claims: {
-      sub: 'local_user',
-      email: 'local@example.com',
-      first_name: 'Local',
-      last_name: 'User',
-    },
-  } as any;
-  next();
+export const isAuthenticated: RequestHandler = async (req, res, next) => {
+  try {
+    const oidc: any = (req as any).oidc;
+    if (!oidc || !oidc.isAuthenticated()) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const userInfo: any = oidc.user || {};
+    const id: string = userInfo.sub;
+    const email: string = userInfo.email;
+    // Derive first and last names from available properties.  Auth0 may
+    // provide `given_name`/`family_name` or a full `name` string.
+    let firstName: string = userInfo.given_name || '';
+    let lastName: string = userInfo.family_name || '';
+    if (!firstName && userInfo.name) {
+      const parts = String(userInfo.name).split(' ');
+      firstName = parts[0] || '';
+      lastName = parts.slice(1).join(' ') || '';
+    }
+    // Upsert the user in the database so that a record always exists.
+    if (id) {
+      await storage.upsertUser({
+        id,
+        email,
+        firstName,
+        lastName,
+      });
+      // Attach a claims object for backward compatibility with existing routes.
+      (req as any).user = {
+        claims: {
+          sub: id,
+          email,
+          first_name: firstName,
+          last_name: lastName,
+        },
+      };
+    }
+
+    return next();
+  } catch (error) {
+    console.error('Authentication error:', error);
+    return res.status(500).json({ message: 'Authentication error' });
+  }
 };

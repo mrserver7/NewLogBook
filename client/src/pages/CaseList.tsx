@@ -50,7 +50,7 @@ export default function CaseList() {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/api/auth/login";
         }, 500);
         return;
       }
@@ -81,7 +81,7 @@ export default function CaseList() {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/api/auth/login";
         }, 500);
         return;
       }
