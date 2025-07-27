@@ -11,7 +11,7 @@ export default function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
 
   const navigationItems = [
-    { path: "/", icon: "fas fa-tachometer-alt", label: "Dashboard" },
+    { path: "/dashboard", icon: "fas fa-tachometer-alt", label: "Dashboard" },
     { path: "/new-case", icon: "fas fa-plus-circle", label: "New Case" },
     { path: "/cases", icon: "fas fa-list", label: "Case List" },
     { path: "/patients", icon: "fas fa-users", label: "Patients" },
@@ -26,8 +26,8 @@ export default function Sidebar({ className }: SidebarProps) {
   ];
 
   const isActive = (path: string) => {
-    if (path === "/") {
-      return location === path;
+    if (path === "/dashboard") {
+      return location === path || location === "/";
     }
     return location.startsWith(path);
   };
