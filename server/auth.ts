@@ -24,7 +24,7 @@ export async function setupAuth(app: Express) {
       proxy: true,
       cookie: {
         secure: process.env.NODE_ENV === 'production',  // Only require HTTPS in production
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',  // Lax for dev, None for prod
+        sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',  // Lax for dev, None for prod
         httpOnly: true,
       },
       store: new MemoryStore({
@@ -58,7 +58,7 @@ export async function setupAuth(app: Express) {
       rolling: true,
       cookie: {
         secure: process.env.NODE_ENV === 'production',  // Only require HTTPS in production
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',  // Lax for dev, None for prod
+        sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',  // Lax for dev, None for prod
         httpOnly: true,
       }
     }
