@@ -23,8 +23,8 @@ export async function setupAuth(app: Express) {
       saveUninitialized: false,
       proxy: true,
       cookie: {
-        secure: true,        // Only send cookie over HTTPS
-        sameSite: 'None',    // Required for cross-origin (Auth0) flows
+        secure: process.env.NODE_ENV === 'production',  // Only require HTTPS in production
+        sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',  // Lax for dev, None for prod
         httpOnly: true,
       },
       store: new MemoryStore({
@@ -57,8 +57,8 @@ export async function setupAuth(app: Express) {
     session: {
       rolling: true,
       cookie: {
-        secure: true,
-        sameSite: 'None',
+        secure: process.env.NODE_ENV === 'production',  // Only require HTTPS in production
+        sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',  // Lax for dev, None for prod
         httpOnly: true,
       }
     }

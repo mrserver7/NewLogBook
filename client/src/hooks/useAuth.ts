@@ -21,13 +21,17 @@ export function useAuth() {
 
         if (response.ok) {
           const userData = await response.json();
+          console.log('User authenticated:', userData);
           setUser(userData);
         } else if (response.status === 401) {
-          // User is not authenticated
+          // User is not authenticated - this is normal for non-logged-in users
+          console.log('User not authenticated (401)');
           setUser(null);
         } else {
           // Other error
-          setError(`Authentication check failed: ${response.status}`);
+          console.error(`Authentication check failed: ${response.status}`);
+          const errorText = await response.text();
+          setError(`Authentication check failed: ${response.status} - ${errorText}`);
           setUser(null);
         }
       } catch (err) {
@@ -43,10 +47,12 @@ export function useAuth() {
   }, []);
 
   const login = () => {
+    console.log('Redirecting to login...');
     window.location.href = '/api/auth/login';
   };
 
   const logout = () => {
+    console.log('Redirecting to logout...');
     window.location.href = '/api/auth/logout';
   };
 
