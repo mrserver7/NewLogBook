@@ -14,7 +14,8 @@ import {
   insertProcedureSchema,
   insertCaseSchema,
   insertCaseTemplateSchema,
-  insertUserPreferencesSchema
+  insertUserPreferencesSchema,
+  insertUserSchema
 } from "@shared/schema";
 
 // Configure multer for file uploads
@@ -711,6 +712,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching system stats:", error);
       res.status(500).json({ message: "Failed to fetch system stats" });
+    }
+  });
+
+  // Update user by admin
+  app.patch('/api/admin/users/:userId', isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const userId = req.params.userId;
+      const updateData = req.body;
+      
+      // Validate the update data
+      const validatedData = insertUserSchema.partial().parse(updateData);
+      
+      // Update user
+      const updatedUser = await storage.updateUser(userId, validatedData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  // Setup admin and procedures endpoint (only for first-time setup)
+  app.post('/api/setup', async (req, res) => {
+    try {
+      const { email, secret } = req.body;
+      
+      // Basic security check
+      if (secret !== 'setup-admin-2024') {
+        return res.status(403).json({ message: "Invalid setup secret" });
+      }
+
+      // Set user as admin by email
+      if (email) {
+        // Find user by email first
+        const users = await storage.getAllUsers();
+        const user = users.find(u => u.email === email);
+        if (user) {
+          const updatedUser = await storage.updateUser(user.id, { role: 'admin', isActive: true });
+          if (updatedUser) {
+            console.log(`Set ${email} as admin`);
+          }
+        }
+      }
+
+      // Add default procedures if they don't exist
+      const DEFAULT_PROCEDURES = [
+        { name: 'General Anesthesia', category: 'General', description: 'General anesthesia procedure' },
+        { name: 'Spinal Anesthesia', category: 'Regional', description: 'Spinal anesthesia procedure' },
+        { name: 'Epidural Anesthesia', category: 'Regional', description: 'Epidural anesthesia procedure' },
+        { name: 'Local Anesthesia', category: 'Local', description: 'Local anesthesia procedure' },
+        { name: 'Combined Spinal-Epidural', category: 'Regional', description: 'Combined spinal-epidural anesthesia' },
+        { name: 'Nerve Block', category: 'Regional', description: 'Peripheral nerve block' },
+        { name: 'Sedation', category: 'Sedation', description: 'Procedural sedation' },
+        { name: 'MAC (Monitored Anesthesia Care)', category: 'Sedation', description: 'Monitored anesthesia care' },
+        { name: 'Appendectomy', category: 'General Surgery', description: 'Surgical removal of appendix' },
+        { name: 'Cholecystectomy', category: 'General Surgery', description: 'Surgical removal of gallbladder' },
+        { name: 'Hernia Repair', category: 'General Surgery', description: 'Surgical repair of hernia' },
+        { name: 'Colonoscopy', category: 'Endoscopy', description: 'Colonoscopic examination' },
+        { name: 'Upper Endoscopy', category: 'Endoscopy', description: 'Upper endoscopic examination' },
+        { name: 'Bronchoscopy', category: 'Endoscopy', description: 'Bronchoscopic examination' },
+        { name: 'Arthroscopy', category: 'Orthopedic', description: 'Arthroscopic procedure' },
+        { name: 'Total Knee Replacement', category: 'Orthopedic', description: 'Total knee replacement surgery' },
+        { name: 'Hip Replacement', category: 'Orthopedic', description: 'Hip replacement surgery' },
+        { name: 'Cesarean Section', category: 'Obstetric', description: 'Cesarean delivery' },
+        { name: 'Vaginal Delivery', category: 'Obstetric', description: 'Vaginal delivery' },
+        { name: 'Cataract Surgery', category: 'Ophthalmology', description: 'Cataract extraction surgery' },
+        { name: 'Other', category: 'Other', description: 'Other procedure not listed' },
+      ];
+
+      let proceduresAdded = 0;
+      for (const procedure of DEFAULT_PROCEDURES) {
+        try {
+          await storage.createProcedure(procedure);
+          proceduresAdded++;
+        } catch (error) {
+          // Procedure might already exist
+        }
+      }
+
+      res.json({ 
+        message: "Setup completed successfully",
+        proceduresAdded,
+        adminSet: !!email
+      });
+    } catch (error) {
+      console.error("Setup failed:", error);
+      res.status(500).json({ message: "Setup failed" });
     }
   });
 

@@ -36,6 +36,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateUserTheme(userId: string, theme: string): Promise<void>;
+  updateUser(userId: string, updates: Partial<UpsertUser>): Promise<User | null>;
   
   // Patient operations
   getPatients(userId: string, limit?: number): Promise<Patient[]>;
@@ -137,6 +138,15 @@ export class MongoStorage implements IStorage {
 
   async updateUserTheme(userId: string, theme: string): Promise<void> {
     await UserModel.updateOne({ id: userId }, { $set: { themePreference: theme, updatedAt: new Date() } }).exec();
+  }
+
+  async updateUser(userId: string, updates: Partial<UpsertUser>): Promise<User | null> {
+    const doc = await UserModel.findOneAndUpdate(
+      { id: userId },
+      { $set: { ...updates, updatedAt: new Date() } },
+      { new: true }
+    ).lean().exec();
+    return doc as any;
   }
 
   // Patient operations
