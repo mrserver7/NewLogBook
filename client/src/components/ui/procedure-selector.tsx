@@ -78,9 +78,16 @@ export function ProcedureSelector({ value, onChange, className, placeholder = "S
   const handleCustomProcedureChange = (customName: string) => {
     setCustomProcedureName(customName);
     onChange({ 
-      procedureId: value?.procedureId, 
+      procedureId: undefined, 
       customProcedureName: customName 
     });
+  };
+
+  // Handle add custom procedure button
+  const handleAddCustomProcedure = () => {
+    setShowCustomInput(true);
+    setOpen(false);
+    onChange({ procedureId: undefined, customProcedureName: "" });
   };
 
   // Initialize custom input state if value has custom procedure name
@@ -124,6 +131,21 @@ export function ProcedureSelector({ value, onChange, className, placeholder = "S
             <CommandList className="max-h-80">
               <CommandEmpty>No procedures found.</CommandEmpty>
               
+              {/* Always show "Add Custom Procedure" option */}
+              <CommandGroup heading="Custom">
+                <CommandItem
+                  onSelect={() => handleAddCustomProcedure()}
+                  className="cursor-pointer hover:bg-light-elevated dark:hover:bg-dark-elevated"
+                >
+                  <div className="flex items-center space-x-2">
+                    <i className="fas fa-plus text-blue-600 dark:text-blue-400"></i>
+                    <span className="font-medium text-blue-600 dark:text-blue-400">
+                      Add Custom Procedure
+                    </span>
+                  </div>
+                </CommandItem>
+              </CommandGroup>
+              
               {/* Show filtered results when searching */}
               {searchTerm ? (
                 <CommandGroup>
@@ -158,8 +180,8 @@ export function ProcedureSelector({ value, onChange, className, placeholder = "S
                     </CommandItem>
                   ))}
                 </CommandGroup>
-              ) : (
-                /* Show grouped by category when not searching */
+              ) : procedures.length > 0 ? (
+                /* Show grouped by category when not searching and procedures exist */
                 Object.entries(proceduresByCategory).map(([category, categoryProcedures]) => (
                   <CommandGroup key={category} heading={category}>
                     {categoryProcedures.map((procedure) => (
@@ -193,6 +215,14 @@ export function ProcedureSelector({ value, onChange, className, placeholder = "S
                     ))}
                   </CommandGroup>
                 ))
+              ) : (
+                /* Show message when no procedures are available */
+                <CommandGroup>
+                  <div className="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                    <p>No procedures available yet.</p>
+                    <p className="mt-1 text-xs">Use "Add Custom Procedure" above to create one.</p>
+                  </div>
+                </CommandGroup>
               )}
             </CommandList>
           </Command>
@@ -202,9 +232,25 @@ export function ProcedureSelector({ value, onChange, className, placeholder = "S
       {/* Custom procedure name input */}
       {showCustomInput && (
         <div className="space-y-2">
-          <Label htmlFor="custom-procedure" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Custom Procedure Name
-          </Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="custom-procedure" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Custom Procedure Name
+            </Label>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setShowCustomInput(false);
+                setCustomProcedureName("");
+                onChange({ procedureId: undefined, customProcedureName: undefined });
+              }}
+              className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              <i className="fas fa-times mr-1"></i>
+              Clear
+            </Button>
+          </div>
           <Input
             id="custom-procedure"
             type="text"

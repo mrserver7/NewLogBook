@@ -50,7 +50,8 @@ async function setupAdminAndProcedures() {
     }
 
     // Add default procedures if they don't exist
-    for (const [index, procedure] of DEFAULT_PROCEDURES.entries()) {
+    for (let index = 0; index < DEFAULT_PROCEDURES.length; index++) {
+      const procedure = DEFAULT_PROCEDURES[index];
       const existing = await ProcedureModel.findOne({ name: procedure.name });
       if (!existing) {
         await ProcedureModel.create({

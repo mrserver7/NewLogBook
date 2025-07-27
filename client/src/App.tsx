@@ -18,6 +18,7 @@ import Settings from "@/pages/Settings";
 import UserManagement from "@/pages/admin/UserManagement";
 import SystemAnalytics from "@/pages/admin/SystemAnalytics";
 import UserCases from "@/pages/admin/UserCases";
+import Setup from "@/pages/Setup";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -34,6 +35,7 @@ function Router() {
         <ThemeProvider>
           <Switch>
             <Route path="/" component={Landing} />
+            <Route path="/setup" component={Setup} />
             <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} />} />
             <Route path="/cases" component={() => <ProtectedRoute component={CaseList} />} />
             <Route path="/new-case" component={() => <ProtectedRoute component={NewCase} />} />
