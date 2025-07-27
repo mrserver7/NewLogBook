@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useThemeContext } from "@/components/ThemeProvider";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Sun, Moon, Bell, Plus, LogOut } from "lucide-react";
@@ -12,6 +13,7 @@ interface TopBarProps {
 
 export default function TopBar({ title, subtitle, onNewCase }: TopBarProps) {
   const { theme, toggleTheme } = useThemeContext();
+  const { logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleSearch = (e: React.FormEvent) => {
@@ -84,7 +86,7 @@ export default function TopBar({ title, subtitle, onNewCase }: TopBarProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => window.location.href = "/api/auth/logout"}
+            onClick={logout}
             className="p-2 rounded-xl bg-light-elevated dark:bg-dark-elevated hover:bg-red-100 dark:hover:bg-red-900 text-red-600 dark:text-red-400"
           >
             <LogOut className="h-4 w-4" />

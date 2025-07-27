@@ -1,9 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useThemeContext } from "@/components/ThemeProvider";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Landing() {
   const { theme, toggleTheme } = useThemeContext();
+  const { login, isAuthenticated, isLoading } = useAuth();
+
+  // If user is authenticated, redirect to dashboard
+  if (isAuthenticated && !isLoading) {
+    window.location.href = '/dashboard';
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-300">
@@ -36,10 +44,11 @@ export default function Landing() {
             </button>
             
             <Button 
-              onClick={() => window.location.href = "/api/auth/login"}
+              onClick={login}
+              disabled={isLoading}
               className="bg-gradient-to-r from-blue-600 to-teal-500 hover:from-blue-700 hover:to-teal-600 text-white px-6 py-2 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all"
             >
-              Sign In
+              {isLoading ? 'Loading...' : 'Sign In'}
             </Button>
           </div>
         </div>
@@ -62,12 +71,13 @@ export default function Landing() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
             <Button 
-              onClick={() => window.location.href = "/api/auth/login"}
+              onClick={login}
+              disabled={isLoading}
               size="lg"
               className="bg-gradient-to-r from-blue-600 to-teal-500 hover:from-blue-700 hover:to-teal-600 text-white px-8 py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
             >
               <i className="fas fa-user-md mr-2"></i>
-              Get Started
+              {isLoading ? 'Loading...' : 'Get Started'}
             </Button>
             
             <Button 
