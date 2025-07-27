@@ -367,19 +367,10 @@ export default function Export() {
                 <Button
                   onClick={handleExport}
                   disabled={exportData.isPending || filteredCases.length === 0}
-                  className="w-full bg-gradient-to-r from-blue-600 to-teal-500 hover:from-blue-700 hover:to-teal-600 text-white"
+                  className="w-full bg-gradient-to-r from-blue-600 to-teal-500 hover:from-blue-700 hover:to-teal-600 text-white disabled:opacity-50"
                 >
-                  {exportData.isPending ? (
-                    <>
-                      <i className="fas fa-spinner fa-spin mr-2"></i>
-                      Generating Export...
-                    </>
-                  ) : (
-                    <>
-                      <i className="fas fa-download mr-2"></i>
-                      Export Data
-                    </>
-                  )}
+                  <i className="fas fa-download mr-2"></i>
+                  Export Data
                 </Button>
               </CardContent>
             </Card>
