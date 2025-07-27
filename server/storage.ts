@@ -58,6 +58,7 @@ export interface IStorage {
   getProcedures(limit?: number): Promise<Procedure[]>;
   getProcedure(id: number): Promise<Procedure | undefined>;
   createProcedure(procedure: InsertProcedure): Promise<Procedure>;
+  clearAllProcedures(): Promise<void>;
   
   // Case operations
   getCases(userId: string, limit?: number, offset?: number): Promise<any[]>;
@@ -251,7 +252,7 @@ export class MongoStorage implements IStorage {
   }
 
   // Procedure operations
-  async getProcedures(limit = 100): Promise<Procedure[]> {
+  async getProcedures(limit = 500): Promise<Procedure[]> {
     const docs = await ProcedureModel.find({})
       .sort({ name: 1 })
       .limit(limit)
@@ -269,6 +270,10 @@ export class MongoStorage implements IStorage {
     const nextId = (await ProcedureModel.countDocuments().exec()) + 1;
     const doc = await ProcedureModel.create({ ...procedure, id: nextId, createdAt: new Date() } as any);
     return doc.toObject() as any;
+  }
+
+  async clearAllProcedures(): Promise<void> {
+    await ProcedureModel.deleteMany({}).exec();
   }
 
   // Case operations
