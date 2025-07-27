@@ -413,6 +413,25 @@ class MockStorage implements IStorage {
     };
   }
 
+  async getCaseStats(userId: string): Promise<any> {
+    const userCases = Array.from(this.cases.values()).filter(c => c.userId === userId);
+    return {
+      totalCases: userCases.length,
+      casesThisMonth: userCases.filter(c => {
+        const date = new Date(c.caseDate);
+        const now = new Date();
+        return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+      }).length,
+      avgDuration: userCases.length > 0 ? 
+        userCases.reduce((acc, c) => acc + (parseFloat(c.caseDuration || '0') || 0), 0) / userCases.length : 0,
+      casesByType: userCases.reduce((acc: any, c) => {
+        const type = c.anesthesiaType || 'Unknown';
+        acc[type] = (acc[type] || 0) + 1;
+        return acc;
+      }, {}),
+    };
+  }
+
   async getAllUsers(limit?: number): Promise<User[]> {
     const users = Array.from(this.users.values());
     return limit ? users.slice(0, limit) : users;
