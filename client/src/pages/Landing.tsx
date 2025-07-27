@@ -2,14 +2,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useThemeContext } from "@/components/ThemeProvider";
 import { useAuth } from "@/hooks/useAuth";
+import { useEffect } from "react";
+import { useLocation } from "wouter";
 
 export default function Landing() {
   const { theme, toggleTheme } = useThemeContext();
   const { login, isAuthenticated, isLoading } = useAuth();
+  const [location, setLocation] = useLocation();
 
   // If user is authenticated, redirect to dashboard
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      setLocation('/dashboard');
+    }
+  }, [isAuthenticated, isLoading, setLocation]);
+
+  // Don't render landing page if user is authenticated
   if (isAuthenticated && !isLoading) {
-    window.location.href = '/dashboard';
     return null;
   }
 

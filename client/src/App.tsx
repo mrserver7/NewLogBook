@@ -19,7 +19,7 @@ import UserManagement from "@/pages/admin/UserManagement";
 import SystemAnalytics from "@/pages/admin/SystemAnalytics";
 import UserCases from "@/pages/admin/UserCases";
 
-function ProtectedRoute({ component: Component }) {
+function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) return null;
@@ -31,7 +31,7 @@ function Router() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+        <ThemeProvider>
           <Switch>
             <Route path="/" component={Landing} />
             <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} />} />

@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
  * Authentication hook that connects to the server-side Auth0 session
  */
 export function useAuth() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const checkAuthStatus = async () => {
@@ -36,7 +36,7 @@ export function useAuth() {
         }
       } catch (err) {
         console.error('Auth check error:', err);
-        setError(err.message || 'Authentication check failed');
+        setError(err instanceof Error ? err.message : 'Authentication check failed');
         setUser(null);
       } finally {
         setIsLoading(false);
