@@ -62,6 +62,7 @@ export function ProcedureSelector({ value, onChange, className, placeholder = "S
 
   // Handle procedure selection
   const handleProcedureSelect = (procedure: Procedure) => {
+    console.log("Handling procedure selection:", procedure);
     if (procedure.name === "Other") {
       setShowCustomInput(true);
       setOpen(false);
@@ -69,7 +70,7 @@ export function ProcedureSelector({ value, onChange, className, placeholder = "S
     } else {
       setShowCustomInput(false);
       setCustomProcedureName("");
-      onChange({ procedureId: procedure.id });
+      onChange({ procedureId: procedure.id, customProcedureName: undefined });
       setOpen(false);
     }
   };
@@ -157,10 +158,6 @@ export function ProcedureSelector({ value, onChange, className, placeholder = "S
                         console.log("Selected procedure:", procedure);
                         handleProcedureSelect(procedure);
                       }}
-                      onClick={() => {
-                        console.log("Clicked procedure:", procedure);
-                        handleProcedureSelect(procedure);
-                      }}
                       className="cursor-pointer hover:bg-light-elevated dark:hover:bg-dark-elevated"
                     >
                       <div className="flex items-center justify-between w-full">
@@ -190,10 +187,6 @@ export function ProcedureSelector({ value, onChange, className, placeholder = "S
                         value={`${procedure.id}-${procedure.name}`}
                         onSelect={() => {
                           console.log("Selected procedure:", procedure);
-                          handleProcedureSelect(procedure);
-                        }}
-                        onClick={() => {
-                          console.log("Clicked procedure:", procedure);
                           handleProcedureSelect(procedure);
                         }}
                         className="cursor-pointer hover:bg-light-elevated dark:hover:bg-dark-elevated"
