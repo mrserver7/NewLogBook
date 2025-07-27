@@ -252,7 +252,7 @@ export class MongoStorage implements IStorage {
   }
 
   // Procedure operations
-  async getProcedures(limit = 100): Promise<Procedure[]> {
+  async getProcedures(limit = 500): Promise<Procedure[]> {
     const docs = await ProcedureModel.find({})
       .sort({ name: 1 })
       .limit(limit)
