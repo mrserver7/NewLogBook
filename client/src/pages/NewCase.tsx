@@ -15,6 +15,51 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 
+// Helper function to convert technical validation errors to user-friendly messages
+function parseValidationErrors(validationDetails: any[]): string {
+  const fieldErrors = validationDetails.map(error => {
+    const field = error.path?.[0] || 'field';
+    const code = error.code;
+    
+    switch (field) {
+      case 'anesthesiaType':
+        return 'Please select an anesthesia type';
+      case 'caseDate':
+        return 'Please provide a valid case date';
+      case 'procedureId':
+      case 'customProcedureName':
+        return 'Please select a procedure or enter a custom procedure name';
+      case 'regionalBlockType':
+      case 'customRegionalBlock':
+        if (code === 'invalid_type') {
+          return 'Please select a regional block type if using regional anesthesia';
+        }
+        return 'Regional block information is incomplete';
+      case 'anesthesiologistId':
+        return 'Authentication issue. Please refresh the page and try again';
+      case 'patientId':
+      case 'patientName':
+        return 'Patient information is incomplete or invalid';
+      default:
+        if (code === 'invalid_type' && error.received === 'null') {
+          return `Please provide valid information for ${field}`;
+        }
+        return error.message || 'Please check the form data and try again';
+    }
+  });
+  
+  // Remove duplicates and join
+  const uniqueErrors = [...new Set(fieldErrors)];
+  
+  if (uniqueErrors.length === 1) {
+    return uniqueErrors[0];
+  } else if (uniqueErrors.length <= 3) {
+    return uniqueErrors.join('. ');
+  } else {
+    return 'Please check the form data and ensure all required fields are completed correctly';
+  }
+}
+
 export default function NewCase() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -85,9 +130,14 @@ export default function NewCase() {
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-          const errorMessage = errorData.details 
-            ? `Validation error: ${errorData.details.map((d: any) => d.message).join(', ')}`
-            : errorData.message || `HTTP error! status: ${response.status}`;
+          
+          // Provide user-friendly error messages instead of raw validation details
+          if (errorData.details && Array.isArray(errorData.details)) {
+            const friendlyMessage = parseValidationErrors(errorData.details);
+            throw new Error(friendlyMessage);
+          }
+          
+          const errorMessage = errorData.message || `HTTP error! status: ${response.status}`;
           throw new Error(errorMessage);
         }
         
@@ -97,9 +147,14 @@ export default function NewCase() {
         const response = await apiRequest("POST", "/api/cases", caseData);
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-          const errorMessage = errorData.details 
-            ? `Validation error: ${errorData.details.map((d: any) => d.message).join(', ')}`
-            : errorData.message || `HTTP error! status: ${response.status}`;
+          
+          // Provide user-friendly error messages instead of raw validation details
+          if (errorData.details && Array.isArray(errorData.details)) {
+            const friendlyMessage = parseValidationErrors(errorData.details);
+            throw new Error(friendlyMessage);
+          }
+          
+          const errorMessage = errorData.message || `HTTP error! status: ${response.status}`;
           throw new Error(errorMessage);
         }
         return response.json();
@@ -132,7 +187,8 @@ export default function NewCase() {
       // Provide more specific error messages
       let errorMessage = "Failed to create case. Please try again.";
       if (error instanceof Error) {
-        if (error.message.includes('Validation error')) {
+        // If we already have a user-friendly message from parseValidationErrors, use it
+        if (error.message && !error.message.includes('Validation error:') && !error.message.includes('HTTP error!')) {
           errorMessage = error.message;
         } else if (error.message.includes('anesthesiologistId')) {
           errorMessage = "Authentication issue. Please refresh and try again.";
@@ -144,7 +200,7 @@ export default function NewCase() {
           errorMessage = "Please select a procedure or enter a custom procedure name.";
         } else if (error.message.includes('Network') || error.message.includes('fetch')) {
           errorMessage = "Network error. Please check your connection and try again.";
-        } else if (error.message.length > 10) {
+        } else if (error.message.length > 10 && error.message.length < 200) {
           errorMessage = error.message;
         }
       }
