@@ -416,14 +416,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Request body keys:", Object.keys(req.body));
       const userId = req.user.claims.sub;
       
+      // Helper function to safely parse integers from FormData
+      const parseIntOrNull = (value) => {
+        if (!value || value === "" || value === "null" || value === "undefined") {
+          return null;
+        }
+        const parsed = parseInt(value);
+        return isNaN(parsed) ? null : parsed;
+      };
+
       // Transform the request data to proper types
       const transformedData = {
         ...req.body,
         anesthesiologistId: userId,
         // Keep patientId as string
         patientId: req.body.patientId && req.body.patientId !== "" ? req.body.patientId.trim() : null,
-        procedureId: req.body.procedureId && req.body.procedureId !== "" ? parseInt(req.body.procedureId) : null,
-        customProcedureName: req.body.customProcedureName || null,
+        procedureId: parseIntOrNull(req.body.procedureId),
+        customProcedureName: req.body.customProcedureName && req.body.customProcedureName !== "null" ? req.body.customProcedureName : null,
         regionalBlockType: req.body.regionalBlockType || null,
         customRegionalBlock: req.body.customRegionalBlock || null,
         // Convert number strings to proper types (only if valid)

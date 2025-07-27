@@ -29,7 +29,7 @@ export default function CasesByType() {
     );
   }
 
-  const casesByType = stats?.casesByType || [];
+  const casesByType = Array.isArray(stats?.casesByType) ? stats.casesByType : [];
   const totalCases = casesByType.reduce((sum: number, item: any) => sum + item.count, 0);
 
   const getGradient = (index: number) => {
