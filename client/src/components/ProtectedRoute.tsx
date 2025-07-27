@@ -25,17 +25,9 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   }, [isAuthenticated, isLoading, toast]);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-light-bg dark:bg-dark-bg">
-        <div className="text-center">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-teal-500 rounded-xl flex items-center justify-center mx-auto mb-4">
-            <i className="fas fa-heartbeat text-white text-xl animate-pulse"></i>
-          </div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">CaseCurator</h2>
-          <p className="text-gray-600 dark:text-gray-400">Loading your logbook...</p>
-        </div>
-      </div>
-    );
+    // Remove the full-screen loading indicator for faster navigation
+    // Just return null briefly during loading
+    return null;
   }
 
   if (!isAuthenticated) {

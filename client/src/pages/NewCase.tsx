@@ -84,13 +84,24 @@ export default function NewCase() {
         });
         
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+          const errorMessage = errorData.details 
+            ? `Validation error: ${errorData.details.map((d: any) => d.message).join(', ')}`
+            : errorData.message || `HTTP error! status: ${response.status}`;
+          throw new Error(errorMessage);
         }
         
         return await response.json();
       } else {
         // Regular JSON request without photo
         const response = await apiRequest("POST", "/api/cases", caseData);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+          const errorMessage = errorData.details 
+            ? `Validation error: ${errorData.details.map((d: any) => d.message).join(', ')}`
+            : errorData.message || `HTTP error! status: ${response.status}`;
+          throw new Error(errorMessage);
+        }
         return response.json();
       }
     },
@@ -104,6 +115,8 @@ export default function NewCase() {
       setLocation("/cases");
     },
     onError: (error) => {
+      console.error("Case creation error:", error);
+      
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
@@ -115,9 +128,30 @@ export default function NewCase() {
         }, 500);
         return;
       }
+      
+      // Provide more specific error messages
+      let errorMessage = "Failed to create case. Please try again.";
+      if (error instanceof Error) {
+        if (error.message.includes('Validation error')) {
+          errorMessage = error.message;
+        } else if (error.message.includes('anesthesiologistId')) {
+          errorMessage = "Authentication issue. Please refresh and try again.";
+        } else if (error.message.includes('anesthesiaType')) {
+          errorMessage = "Please select an anesthesia type.";
+        } else if (error.message.includes('caseDate')) {
+          errorMessage = "Please provide a valid case date.";
+        } else if (error.message.includes('procedureId') || error.message.includes('customProcedureName')) {
+          errorMessage = "Please select a procedure or enter a custom procedure name.";
+        } else if (error.message.includes('Network') || error.message.includes('fetch')) {
+          errorMessage = "Network error. Please check your connection and try again.";
+        } else if (error.message.length > 10) {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
-        title: "Error",
-        description: "Failed to create case. Please try again.",
+        title: "Case Creation Failed",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -126,10 +160,58 @@ export default function NewCase() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.anesthesiaType || !formData.caseDate) {
+    // Enhanced client-side validation
+    const validationErrors: string[] = [];
+    
+    if (!formData.anesthesiaType) {
+      validationErrors.push("Anesthesia type is required");
+    }
+    
+    if (!formData.caseDate) {
+      validationErrors.push("Case date is required");
+    }
+    
+    if (!formData.procedure.procedureId && !formData.procedure.customProcedureName) {
+      validationErrors.push("Please select a procedure or enter a custom procedure name");
+    }
+    
+    if (formData.procedure.procedureId && formData.procedure.customProcedureName) {
+      validationErrors.push("Please select either a predefined procedure OR enter a custom name, not both");
+    }
+    
+    if (formData.anesthesiaType === "Regional" && !formData.regionalBlockType && !formData.customRegionalBlock) {
+      validationErrors.push("Regional block type is required when using regional anesthesia");
+    }
+    
+    if (formData.regionalBlockType === "Other" && !formData.customRegionalBlock) {
+      validationErrors.push("Please specify the custom regional block type");
+    }
+    
+    // Validate numeric fields
+    if (formData.weight && (isNaN(parseFloat(formData.weight)) || parseFloat(formData.weight) <= 0)) {
+      validationErrors.push("Weight must be a positive number");
+    }
+    
+    if (formData.height && (isNaN(parseFloat(formData.height)) || parseFloat(formData.height) <= 0)) {
+      validationErrors.push("Height must be a positive number");
+    }
+    
+    if (formData.age && (isNaN(parseInt(formData.age)) || parseInt(formData.age) <= 0 || parseInt(formData.age) > 150)) {
+      validationErrors.push("Age must be a valid number between 1 and 150");
+    }
+    
+    // Validate case date is not in the future (more than 1 day)
+    const caseDate = new Date(formData.caseDate);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    if (caseDate > tomorrow) {
+      validationErrors.push("Case date cannot be more than 1 day in the future");
+    }
+    
+    if (validationErrors.length > 0) {
       toast({
         title: "Validation Error",
-        description: "Please fill in all required fields",
+        description: validationErrors[0], // Show the first error
         variant: "destructive",
       });
       return;
@@ -158,13 +240,13 @@ export default function NewCase() {
     <MainLayout title="New Case" subtitle="Create a comprehensive case entry">
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Header Actions */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
             <Button
               type="button"
               variant="outline"
               onClick={() => setLocation("/cases")}
-              className="border-gray-300 dark:border-gray-600"
+              className="border-gray-300 dark:border-gray-600 w-full sm:w-auto"
             >
               <i className="fas fa-arrow-left mr-2"></i>
               Back to Cases
@@ -175,7 +257,7 @@ export default function NewCase() {
                 // TODO: Apply template data to form
                 console.log("Apply template:", templateId);
               }}>
-                <SelectTrigger className="w-48 bg-light-surface dark:bg-dark-surface border border-gray-200 dark:border-gray-700">
+                <SelectTrigger className="w-full sm:w-48 bg-light-surface dark:bg-dark-surface border border-gray-200 dark:border-gray-700">
                   <SelectValue placeholder="Use template..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -189,28 +271,19 @@ export default function NewCase() {
             )}
           </div>
           
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4 w-full sm:w-auto">
             <Button
               type="submit"
               disabled={createCaseMutation.isPending}
-              className="bg-gradient-to-r from-blue-600 to-teal-500 hover:from-blue-700 hover:to-teal-600 text-white"
+              className="bg-gradient-to-r from-blue-600 to-teal-500 hover:from-blue-700 hover:to-teal-600 text-white disabled:opacity-50 w-full sm:w-auto"
             >
-              {createCaseMutation.isPending ? (
-                <>
-                  <i className="fas fa-spinner fa-spin mr-2"></i>
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <i className="fas fa-save mr-2"></i>
-                  Save Case
-                </>
-              )}
+              <i className="fas fa-save mr-2"></i>
+              Save Case
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 md:gap-8">
           {/* Left Column */}
           <div className="space-y-6">
             {/* Case Information */}
@@ -221,7 +294,7 @@ export default function NewCase() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="caseNumber">Case Number</Label>
                     <div className="flex space-x-2">
@@ -237,6 +310,7 @@ export default function NewCase() {
                         variant="outline"
                         onClick={generateCaseNumber}
                         className="px-3"
+                        title="Generate case number"
                       >
                         <i className="fas fa-refresh"></i>
                       </Button>
@@ -275,7 +349,7 @@ export default function NewCase() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <AnesthesiaSelector
                     anesthesiaType={formData.anesthesiaType}
                     regionalBlockType={formData.regionalBlockType}
@@ -312,7 +386,7 @@ export default function NewCase() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="patientName">Patient Name</Label>
                     <Input
@@ -339,6 +413,8 @@ export default function NewCase() {
                   <Input
                     id="age"
                     type="number"
+                    min="0"
+                    max="150"
                     value={formData.age}
                     onChange={(e) => setFormData({ ...formData, age: e.target.value })}
                     placeholder="e.g., 45"
@@ -346,12 +422,13 @@ export default function NewCase() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="weight">Weight (kg)</Label>
                     <Input
                       id="weight"
                       type="number"
+                      min="0"
                       step="0.1"
                       value={formData.weight}
                       onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
@@ -363,6 +440,7 @@ export default function NewCase() {
                     <Input
                       id="height"
                       type="number"
+                      min="0"
                       value={formData.height}
                       onChange={(e) => setFormData({ ...formData, height: e.target.value })}
                       className="bg-light-elevated dark:bg-dark-elevated border-0"
