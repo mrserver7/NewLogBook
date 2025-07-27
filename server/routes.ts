@@ -844,8 +844,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const userClaims = req.user.claims;
       
-      // Get user from storage
-      const user = await storage.getUser(userId);
+      let user = null;
+      let dbError = null;
+      
+      try {
+        // Get user from storage
+        user = await storage.getUser(userId);
+      } catch (error) {
+        dbError = error instanceof Error ? error.message : "Database connection failed";
+        console.warn("Database error in user status check:", error);
+      }
       
       res.json({
         authClaims: {
@@ -862,6 +870,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isActive: user.isActive,
         } : null,
         isAdmin: user?.role === 'admin',
+        dbError,
         timestamp: new Date().toISOString()
       });
     } catch (error) {

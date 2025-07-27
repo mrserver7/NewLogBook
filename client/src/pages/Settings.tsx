@@ -88,7 +88,13 @@ function UserStatusDiagnostics() {
 
           <div>
             <h5 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Database User</h5>
-            {diagnosticData.userInDatabase ? (
+            {diagnosticData.dbError ? (
+              <div className="text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300 p-2 rounded">
+                Database Error: {diagnosticData.dbError}
+                <br />
+                <span className="text-xs">This is expected in development. In production, ensure MongoDB is connected.</span>
+              </div>
+            ) : diagnosticData.userInDatabase ? (
               <div className="text-xs font-mono bg-gray-100 dark:bg-gray-800 p-2 rounded">
                 <div>DB ID: {diagnosticData.userInDatabase.id}</div>
                 <div>Email: {diagnosticData.userInDatabase.email}</div>
