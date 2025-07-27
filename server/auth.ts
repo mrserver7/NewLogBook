@@ -24,7 +24,7 @@ export async function setupAuth(app: Express) {
       proxy: true,
       cookie: {
         secure: process.env.NODE_ENV === 'production',  // Only require HTTPS in production
-        sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',  // Lax for dev, None for prod
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',  // lax for dev, none for prod
         httpOnly: true,
       },
       store: new MemoryStore({
@@ -32,6 +32,12 @@ export async function setupAuth(app: Express) {
       }),
     })
   );
+
+  // Skip Auth0 setup in development mode
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Development mode: Skipping Auth0 setup');
+    return;
+  }
 
   // Auth0 OIDC Middleware Configuration
   const baseUrl =
@@ -74,6 +80,28 @@ export async function setupAuth(app: Express) {
  */
 export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
   try {
+    // Development bypass for testing
+    if (process.env.NODE_ENV === 'development') {
+      // Create a mock user for development
+      const mockUser = {
+        id: 'dev-user-123',
+        email: 'dev@example.com',
+        firstName: 'Dev',
+        lastName: 'User',
+      };
+      
+      await storage.upsertUser(mockUser);
+      req.user = {
+        claims: {
+          sub: mockUser.id,
+          email: mockUser.email,
+          first_name: mockUser.firstName,
+          last_name: mockUser.lastName,
+        },
+      };
+      return next();
+    }
+
     if (!req.oidc || !req.oidc.isAuthenticated()) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
