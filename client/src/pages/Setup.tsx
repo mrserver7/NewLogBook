@@ -30,15 +30,37 @@ export default function SetupPage() {
       return response.json();
     },
     onSuccess: (data) => {
-      toast({
-        title: "Setup Completed",
-        description: `Successfully set up admin user and added ${data.proceduresAdded} procedures.`,
-      });
+      console.log('Setup response:', data);
+      
+      if (data.adminSetup?.userFound && data.adminSetup?.userUpdated) {
+        toast({
+          title: "Setup Completed Successfully",
+          description: `Admin user set up successfully and ${data.proceduresAdded} procedures added.`,
+        });
+      } else if (data.adminSetup?.userFound && !data.adminSetup?.userUpdated) {
+        toast({
+          title: "Setup Partially Completed",
+          description: `User found but admin role update failed. ${data.proceduresAdded} procedures added.`,
+          variant: "destructive",
+        });
+      } else if (!data.adminSetup?.userFound) {
+        toast({
+          title: "User Not Found",
+          description: `User with email ${data.adminSetup?.email} not found in database. Please login at least once first. ${data.proceduresAdded} procedures added.`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Setup Completed",
+          description: `Setup completed with ${data.proceduresAdded} procedures added.`,
+        });
+      }
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error('Setup error:', error);
       toast({
         title: "Setup Failed",
-        description: "Failed to complete setup. Please try again.",
+        description: error.message || "Failed to complete setup. Please try again.",
         variant: "destructive",
       });
     },
@@ -123,13 +145,18 @@ export default function SetupPage() {
             </Button>
           </form>
           
-          <div className="mt-6 text-center">
+          <div className="mt-6 text-center space-y-2">
             <a 
               href="/"
-              className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+              className="block text-sm text-blue-600 dark:text-blue-400 hover:underline"
             >
               ← Back to Application
             </a>
+            
+            <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+              <p>Note: You must login at least once before running setup</p>
+              <p>After setup, check your admin status in Settings → Admin Diagnostics</p>
+            </div>
           </div>
         </CardContent>
       </Card>

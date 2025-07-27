@@ -16,6 +16,108 @@ import { useThemeContext } from "@/components/ThemeProvider";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 
+function UserStatusDiagnostics() {
+  const { toast } = useToast();
+  const [diagnosticData, setDiagnosticData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const runDiagnostics = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/debug/user-status', {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setDiagnosticData(data);
+      } else {
+        toast({
+          title: "Diagnostic Failed",
+          description: `Failed to get user status: ${response.status}`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Diagnostic Error",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Check your current authentication and admin status
+        </p>
+        <Button
+          onClick={runDiagnostics}
+          disabled={isLoading}
+          size="sm"
+          className="bg-blue-600 hover:bg-blue-700 text-white"
+        >
+          {isLoading ? (
+            <>
+              <i className="fas fa-spinner fa-spin mr-2"></i>
+              Running...
+            </>
+          ) : (
+            <>
+              <i className="fas fa-search mr-2"></i>
+              Run Diagnostics
+            </>
+          )}
+        </Button>
+      </div>
+
+      {diagnosticData && (
+        <div className="bg-light-elevated dark:bg-dark-elevated rounded-lg p-4 space-y-3">
+          <div>
+            <h5 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Auth Claims</h5>
+            <div className="text-xs font-mono bg-gray-100 dark:bg-gray-800 p-2 rounded">
+              <div>ID: {diagnosticData.authClaims?.sub}</div>
+              <div>Email: {diagnosticData.authClaims?.email}</div>
+              <div>Name: {diagnosticData.authClaims?.name}</div>
+            </div>
+          </div>
+
+          <div>
+            <h5 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Database User</h5>
+            {diagnosticData.userInDatabase ? (
+              <div className="text-xs font-mono bg-gray-100 dark:bg-gray-800 p-2 rounded">
+                <div>DB ID: {diagnosticData.userInDatabase.id}</div>
+                <div>Email: {diagnosticData.userInDatabase.email}</div>
+                <div>Role: <span className={diagnosticData.userInDatabase.role === 'admin' ? 'text-green-600 font-bold' : 'text-yellow-600'}>{diagnosticData.userInDatabase.role}</span></div>
+                <div>Active: {diagnosticData.userInDatabase.isActive ? 'Yes' : 'No'}</div>
+              </div>
+            ) : (
+              <div className="text-xs bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 p-2 rounded">
+                User not found in database - you may need to logout and login again
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h5 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Admin Status</h5>
+            <div className={`text-sm p-2 rounded ${diagnosticData.isAdmin ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' : 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300'}`}>
+              {diagnosticData.isAdmin ? '✅ Admin access granted' : '❌ No admin access'}
+            </div>
+          </div>
+
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            Last checked: {new Date(diagnosticData.timestamp).toLocaleString()}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Settings() {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -563,6 +665,21 @@ export default function Settings() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Admin Diagnostics - Only show for admin users or when debugging */}
+        {(user?.role === 'admin' || process.env.NODE_ENV === 'development') && (
+          <Card className="bg-light-surface dark:bg-dark-surface border border-gray-200 dark:border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <i className="fas fa-tools mr-2 text-blue-600"></i>
+                Admin Diagnostics
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <UserStatusDiagnostics />
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* New Template Modal */}

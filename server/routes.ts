@@ -748,16 +748,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Invalid setup secret" });
       }
 
+      let userFound = false;
+      let userUpdated = false;
+      let userDetails = null;
+
       // Set user as admin by email
       if (email) {
+        console.log(`Looking for user with email: ${email}`);
+        
         // Find user by email first
         const users = await storage.getAllUsers();
+        console.log(`Found ${users.length} total users in system`);
+        
         const user = users.find(u => u.email === email);
         if (user) {
+          userFound = true;
+          console.log(`Found user: ${user.id}, current role: ${user.role}`);
+          
           const updatedUser = await storage.updateUser(user.id, { role: 'admin', isActive: true });
           if (updatedUser) {
-            console.log(`Set ${email} as admin`);
+            userUpdated = true;
+            userDetails = {
+              id: updatedUser.id,
+              email: updatedUser.email,
+              role: updatedUser.role,
+              isActive: updatedUser.isActive
+            };
+            console.log(`Successfully set ${email} as admin. Updated user:`, userDetails);
+          } else {
+            console.error(`Failed to update user ${user.id} to admin role`);
           }
+        } else {
+          console.log(`User with email ${email} not found in database. Available users:`, 
+            users.map(u => ({ id: u.id, email: u.email, role: u.role })));
         }
       }
 
@@ -799,11 +822,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ 
         message: "Setup completed successfully",
         proceduresAdded,
-        adminSet: !!email
+        adminSetup: {
+          userFound,
+          userUpdated,
+          userDetails,
+          email: email
+        }
       });
     } catch (error) {
       console.error("Setup failed:", error);
-      res.status(500).json({ message: "Setup failed" });
+      res.status(500).json({ 
+        message: "Setup failed",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Debug endpoint to check current user status and admin access
+  app.get('/api/debug/user-status', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const userClaims = req.user.claims;
+      
+      // Get user from storage
+      const user = await storage.getUser(userId);
+      
+      res.json({
+        authClaims: {
+          sub: userClaims.sub,
+          email: userClaims.email,
+          name: userClaims.name,
+        },
+        userInDatabase: user ? {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          isActive: user.isActive,
+        } : null,
+        isAdmin: user?.role === 'admin',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Debug user status failed:", error);
+      res.status(500).json({ 
+        message: "Failed to get user status",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
