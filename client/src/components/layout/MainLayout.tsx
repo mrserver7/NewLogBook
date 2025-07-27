@@ -14,9 +14,9 @@ export default function MainLayout({ children, title, subtitle, onNewCase }: Mai
     <ProtectedRoute>
       <div className="flex h-screen overflow-hidden bg-light-bg dark:bg-dark-bg">
         <Sidebar />
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden md:ml-0">
           <TopBar title={title} subtitle={subtitle} onNewCase={onNewCase} />
-          <main className="flex-1 overflow-y-auto p-6">
+          <main className="flex-1 overflow-y-auto p-4 md:p-6 ml-0">
             {children}
           </main>
         </div>

@@ -23,26 +23,26 @@ export default function TopBar({ title, subtitle, onNewCase }: TopBarProps) {
   };
 
   return (
-    <header className="bg-light-surface dark:bg-dark-surface border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+    <header className="bg-light-surface dark:bg-dark-surface border-b border-gray-200 dark:border-gray-700 px-4 md:px-6 py-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{title}</h1>
+        <div className="flex items-center space-x-2 md:space-x-4 flex-1 min-w-0 pl-12 md:pl-0">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">{title}</h1>
           {subtitle && (
-            <div className="text-sm text-gray-500 dark:text-gray-400">
+            <div className="text-sm text-gray-500 dark:text-gray-400 hidden sm:block">
               <span>{subtitle}</span>
             </div>
           )}
         </div>
         
-        <div className="flex items-center space-x-4">
-          {/* Quick Search */}
-          <form onSubmit={handleSearch} className="relative">
+        <div className="flex items-center space-x-2 md:space-x-4">
+          {/* Quick Search - Hidden on mobile */}
+          <form onSubmit={handleSearch} className="relative hidden lg:block">
             <Input
               type="text"
               placeholder="Quick search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-64 bg-light-elevated dark:bg-dark-elevated border-0 focus:ring-2 focus:ring-blue-500 pr-10"
+              className="w-48 xl:w-64 bg-light-elevated dark:bg-dark-elevated border-0 focus:ring-2 focus:ring-blue-500 pr-10"
             />
             <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 pointer-events-none" />
           </form>
@@ -61,11 +61,11 @@ export default function TopBar({ title, subtitle, onNewCase }: TopBarProps) {
             )}
           </Button>
 
-          {/* Notifications */}
+          {/* Notifications - Hidden on small mobile */}
           <Button
             variant="ghost"
             size="sm"
-            className="p-2 rounded-xl bg-light-elevated dark:bg-dark-elevated hover:bg-gray-200 dark:hover:bg-gray-600 relative"
+            className="p-2 rounded-xl bg-light-elevated dark:bg-dark-elevated hover:bg-gray-200 dark:hover:bg-gray-600 relative hidden sm:flex"
           >
             <Bell className="h-4 w-4 text-gray-600 dark:text-gray-300" />
             <span className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full"></span>
@@ -75,10 +75,11 @@ export default function TopBar({ title, subtitle, onNewCase }: TopBarProps) {
           {onNewCase && (
             <Button
               onClick={onNewCase}
-              className="bg-gradient-to-r from-blue-600 to-teal-500 hover:from-blue-700 hover:to-teal-600 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transition-all"
+              size="sm"
+              className="bg-gradient-to-r from-blue-600 to-teal-500 hover:from-blue-700 hover:to-teal-600 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transition-all hidden sm:flex"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              New Case
+              <Plus className="h-4 w-4 mr-1 md:mr-2" />
+              <span className="hidden md:inline">New Case</span>
             </Button>
           )}
 

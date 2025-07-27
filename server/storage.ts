@@ -504,10 +504,11 @@ export class MongoStorage implements IStorage {
 }
 
 // Choose the appropriate storage implementation based on the
-// environment.  When MONGODB_URI is defined, the MongoDB backend
-// will be used; otherwise the application will fall back to the
-// original PostgreSQL/Drizzle implementation.  This allows for a
-// gradual migration to MongoDB.
-// Always use MongoStorage as the sole storage backend.  PostgreSQL support
-// has been removed.
-export const storage: IStorage = new MongoStorage();
+// environment.  When in development mode and MongoDB is not available,
+// use mock storage for testing. Otherwise use MongoDB.
+import { mockStorage } from './mock-storage';
+
+// For development testing when MongoDB is not available
+const useMongoStorage = process.env.NODE_ENV !== 'development' || process.env.FORCE_MONGO === 'true';
+
+export const storage: IStorage = useMongoStorage ? new MongoStorage() : mockStorage;
