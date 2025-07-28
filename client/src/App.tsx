@@ -23,7 +23,17 @@ import Setup from "@/pages/Setup";
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, isLoading } = useAuth();
 
-  if (isLoading) return null;
+  if (isLoading) {
+    // Show a minimal loading skeleton instead of blank screen
+    return (
+      <div className="flex items-center justify-center h-screen bg-light-bg dark:bg-dark-bg">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return isAuthenticated ? <Component /> : <Redirect to="/" />;
 }
