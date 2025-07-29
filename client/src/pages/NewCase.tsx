@@ -77,7 +77,7 @@ export default function NewCase() {
     // Case Details
     caseNumber: "",
     caseDate: new Date().toISOString().split('T')[0],
-    procedure: { procedureId: undefined, customProcedureName: undefined } as { procedureId?: number; customProcedureName?: string },
+    procedure: { procedureId: undefined, customProcedureName: undefined, category: undefined } as { procedureId?: number; customProcedureName?: string; category?: string },
     surgeonName: "",
     anesthesiaType: "",
     regionalBlockType: "",
@@ -227,12 +227,12 @@ export default function NewCase() {
       validationErrors.push("Case date is required");
     }
     
-    if (!formData.procedure.procedureId && !formData.procedure.customProcedureName) {
-      validationErrors.push("Please select a procedure or enter a custom procedure name");
+    if (!formData.procedure.customProcedureName) {
+      validationErrors.push("Please select a category and enter a procedure name");
     }
     
-    if (formData.procedure.procedureId && formData.procedure.customProcedureName) {
-      validationErrors.push("Please select either a predefined procedure OR enter a custom name, not both");
+    if (!formData.procedure.category) {
+      validationErrors.push("Please select a procedure category");
     }
     
     if (formData.anesthesiaType === "Regional" && !formData.regionalBlockType && !formData.customRegionalBlock) {
@@ -277,6 +277,7 @@ export default function NewCase() {
       ...formData,
       procedureId: formData.procedure.procedureId || null,
       customProcedureName: formData.procedure.customProcedureName || null,
+      procedureCategory: formData.procedure.category || null,
       weight: formData.weight ? parseFloat(formData.weight) : null,
       height: formData.height ? parseFloat(formData.height) : null,
       age: formData.age ? parseInt(formData.age) : null,
