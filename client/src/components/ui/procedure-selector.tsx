@@ -81,7 +81,8 @@ export function ProcedureSelector({ value, onChange, className, placeholder = "S
     console.log("Category selected:", category);
     setSelectedCategory(category);
     setCategorySelected(true);
-    setOpen(false);
+    // Keep dropdown open - don't close automatically
+    // setOpen(false); // Removed this line to keep dropdown open
     // Clear any existing custom procedure name and update with category
     setCustomProcedureName("");
     onChange({ 
