@@ -5,8 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronDown, Search } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Procedure {
@@ -81,8 +80,7 @@ export function ProcedureSelector({ value, onChange, className, placeholder = "S
     console.log("Category selected:", category);
     setSelectedCategory(category);
     setCategorySelected(true);
-    // Keep dropdown open - don't close automatically
-    // setOpen(false); // Removed this line to keep dropdown open
+    setOpen(false); // Close dropdown after selection
     // Clear any existing custom procedure name and update with category
     setCustomProcedureName("");
     onChange({ 
@@ -145,42 +143,40 @@ export function ProcedureSelector({ value, onChange, className, placeholder = "S
               <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-96 p-0 bg-light-surface dark:bg-dark-surface border border-gray-200 dark:border-gray-700">
-            <Command>
-              <div className="flex items-center border-b border-gray-200 dark:border-gray-700 px-3">
-                <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                <CommandInput 
-                  placeholder="Search categories..."
-                  className="border-0 focus:ring-0"
-                />
-              </div>
-              <CommandList className="max-h-80">
-                <CommandEmpty>No categories found.</CommandEmpty>
-                
-                {/* Show categories only */}
-                <CommandGroup heading="Select Procedure Category">
-                  {categoryOrder.map((category) => (
-                    <CommandItem
-                      key={category}
-                      onSelect={() => handleCategorySelect(category)}
-                      className="cursor-pointer hover:bg-light-elevated dark:hover:bg-dark-elevated"
-                    >
-                      <div className="flex items-center justify-between w-full">
-                        <span>
-                          {emojiMap[category] || "📋"} {category}
-                        </span>
-                        <Check
-                          className={cn(
-                            "h-4 w-4",
-                            selectedCategory === category ? "opacity-100" : "opacity-0"
-                          )}
-                        />
+          <PopoverContent className="w-96 p-4 bg-light-surface dark:bg-dark-surface border border-gray-200 dark:border-gray-700">
+            <div className="space-y-4">
+              <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
+                Select Procedure Category
+              </h4>
+              
+              {/* Category Grid */}
+              <div className="grid grid-cols-1 gap-2 max-h-80 overflow-y-auto">
+                {categoryOrder.map((category) => (
+                  <Button
+                    key={category}
+                    variant="ghost"
+                    onClick={() => handleCategorySelect(category)}
+                    className={cn(
+                      "w-full justify-start p-3 h-auto text-left hover:bg-light-elevated dark:hover:bg-dark-elevated",
+                      selectedCategory === category && "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+                    )}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center space-x-3">
+                        <span className="text-lg">{emojiMap[category] || "📋"}</span>
+                        <span className="text-sm font-medium">{category}</span>
                       </div>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
+                      <Check
+                        className={cn(
+                          "h-4 w-4 text-blue-600 dark:text-blue-400",
+                          selectedCategory === category ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                    </div>
+                  </Button>
+                ))}
+              </div>
+            </div>
           </PopoverContent>
         </Popover>
       </div>
