@@ -70,7 +70,7 @@ const COMPREHENSIVE_PROCEDURES = [
 
   // 5. Pediatric Surgery
   { name: "Pyloromyotomy", category: "Pediatric Surgery", description: "Treatment for pyloric stenosis" },
-  { name: "Inguinal Hernia Repair", category: "Pediatric Surgery", description: "Pediatric inguinal hernia repair" },
+  { name: "Inguinal Hernia Repair (Pediatric)", category: "Pediatric Surgery", description: "Pediatric inguinal hernia repair" },
   { name: "Cleft Lip Repair", category: "Pediatric Surgery", description: "Surgical repair of cleft lip" },
   { name: "Laparotomy for Intestinal Obstruction", category: "Pediatric Surgery", description: "Surgery for bowel obstruction" },
   { name: "Orchiopexy", category: "Pediatric Surgery", description: "Surgical fixation of undescended testicle" },
