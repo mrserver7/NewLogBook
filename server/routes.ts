@@ -513,6 +513,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No photo file provided" });
       }
       
+      // Validate file size - reject very small files that are likely corrupted/empty
+      if (req.file.size < 100) {
+        // Remove the uploaded file if it's too small
+        fs.unlinkSync(req.file.path);
+        return res.status(400).json({ message: "File is too small or corrupted" });
+      }
+      
       const photoData = {
         caseId: caseId,
         fileName: req.file.filename,

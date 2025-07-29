@@ -40,8 +40,12 @@ export default function NewCaseModal({ isOpen, onClose }: NewCaseModalProps) {
     casePhoto: null as File | null,
   });
 
-  // Add debugging to see if component renders
   console.log("NewCaseModal rendered, photo in state:", !!formData.casePhoto);
+  console.log("Current form data:", {
+    anesthesiaType: formData.anesthesiaType,
+    regionalBlockType: formData.regionalBlockType,
+    customRegionalBlock: formData.customRegionalBlock
+  });
 
   const createCaseMutation = useMutation({
     mutationFn: async (caseData: any) => {
@@ -252,7 +256,13 @@ export default function NewCaseModal({ isOpen, onClose }: NewCaseModalProps) {
               regionalBlockType={formData.regionalBlockType}
               customRegionalBlock={formData.customRegionalBlock}
               onAnesthesiaTypeChange={(value) => setFormData({ ...formData, anesthesiaType: value, regionalBlockType: "", customRegionalBlock: "" })}
-              onRegionalBlockTypeChange={(value) => setFormData({ ...formData, regionalBlockType: value, customRegionalBlock: value === "Other" ? "" : "" })}
+              onRegionalBlockTypeChange={(value) => {
+                console.log("Regional block type changed to:", value);
+                console.log("Current form data before update:", formData);
+                const newFormData = { ...formData, regionalBlockType: value, customRegionalBlock: value === "Other" ? "" : "" };
+                console.log("New form data after update:", newFormData);
+                setFormData(newFormData);
+              }}
               onCustomRegionalBlockChange={(value) => setFormData({ ...formData, customRegionalBlock: value })}
               required={true}
             />

@@ -47,6 +47,14 @@ export default function Analytics() {
       }
       return acc;
     }, {}),
+    categoryFrequency: cases.reduce((acc: any, c: any) => {
+      const category = c.procedure?.category;
+      // Only include procedures that have a valid category
+      if (category && category !== "Unknown") {
+        acc[category] = (acc[category] || 0) + 1;
+      }
+      return acc;
+    }, {}),
   } : null;
 
   const formatAnesthesiaType = (type: string) => {
@@ -241,28 +249,28 @@ export default function Analytics() {
             </CardContent>
           </Card>
 
-          {/* Most Common Procedures */}
+          {/* Most Common Categories */}
           <Card className="bg-light-surface dark:bg-dark-surface border border-gray-200 dark:border-gray-700">
             <CardHeader>
               <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Most Common Procedures
+                Most Common Categories
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {analyticsData?.procedureFrequency ? (
+              {analyticsData?.categoryFrequency ? (
                 <div className="space-y-4">
-                  {Object.entries(analyticsData.procedureFrequency)
+                  {Object.entries(analyticsData.categoryFrequency)
                     .sort(([,a], [,b]) => (b as number) - (a as number))
                     .slice(0, 5)
-                    .map(([procedure, count], index) => {
-                      const maxCount = Math.max(...Object.values(analyticsData.procedureFrequency));
+                    .map(([category, count], index) => {
+                      const maxCount = Math.max(...Object.values(analyticsData.categoryFrequency));
                       const percentage = (count as number / maxCount) * 100;
                       
                       return (
-                        <div key={procedure}>
+                        <div key={category}>
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                              {procedure}
+                              {category}
                             </span>
                             <span className="text-sm text-gray-600 dark:text-gray-400">
                               {count}
