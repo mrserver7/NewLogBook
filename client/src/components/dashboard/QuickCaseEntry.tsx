@@ -16,7 +16,7 @@ export default function QuickCaseEntry() {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     patientId: "",
-    procedure: { procedureId: undefined, customProcedureName: undefined } as { procedureId?: number; customProcedureName?: string },
+    procedure: { procedureId: undefined, customProcedureName: undefined, category: undefined } as { procedureId?: number; customProcedureName?: string; category?: string },
     surgeonName: "",
     anesthesiaType: "",
     regionalBlockType: "",
@@ -39,7 +39,7 @@ export default function QuickCaseEntry() {
       });
       setFormData({
         patientId: "",
-        procedure: { procedureId: undefined, customProcedureName: undefined } as { procedureId?: number; customProcedureName?: string },
+        procedure: { procedureId: undefined, customProcedureName: undefined, category: undefined } as { procedureId?: number; customProcedureName?: string; category?: string },
         surgeonName: "",
         anesthesiaType: "",
         regionalBlockType: "",

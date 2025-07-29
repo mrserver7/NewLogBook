@@ -592,10 +592,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Only add optional fields if they have values
         if (transformedData.weight) {
-          patientData.weight = transformedData.weight.toString();
+          patientData.weight = transformedData.weight;
         }
         if (transformedData.height) {
-          patientData.height = transformedData.height.toString();
+          patientData.height = transformedData.height;
         }
         if (transformedData.age) {
           patientData.age = transformedData.age;

@@ -25,7 +25,7 @@ export default function NewCaseModal({ isOpen, onClose }: NewCaseModalProps) {
   const [formData, setFormData] = useState({
     patientName: "",
     patientId: "",
-    procedure: { procedureId: undefined, customProcedureName: undefined } as { procedureId?: number; customProcedureName?: string },
+    procedure: { procedureId: undefined, customProcedureName: undefined, category: undefined } as { procedureId?: number; customProcedureName?: string; category?: string },
     surgeonName: "",
     anesthesiaType: "",
     regionalBlockType: "",
@@ -92,7 +92,7 @@ export default function NewCaseModal({ isOpen, onClose }: NewCaseModalProps) {
       setFormData({
         patientName: "",
         patientId: "",
-        procedure: { procedureId: undefined, customProcedureName: undefined } as { procedureId?: number; customProcedureName?: string },
+        procedure: { procedureId: undefined, customProcedureName: undefined, category: undefined } as { procedureId?: number; customProcedureName?: string; category?: string },
         surgeonName: "",
         anesthesiaType: "",
         regionalBlockType: "",

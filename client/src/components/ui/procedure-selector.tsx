@@ -16,31 +16,21 @@ interface Procedure {
 }
 
 interface ProcedureSelectorProps {
-  value?: { procedureId?: number; customProcedureName?: string };
-  onChange: (value: { procedureId?: number; customProcedureName?: string }) => void;
+  value?: { procedureId?: number; customProcedureName?: string; category?: string };
+  onChange: (value: { procedureId?: number; customProcedureName?: string; category?: string }) => void;
   className?: string;
   placeholder?: string;
 }
 
-export function ProcedureSelector({ value, onChange, className, placeholder = "Select procedure..." }: ProcedureSelectorProps) {
+export function ProcedureSelector({ value, onChange, className, placeholder = "Select category..." }: ProcedureSelectorProps) {
   const [open, setOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [categorySelected, setCategorySelected] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [customProcedureName, setCustomProcedureName] = useState("");
 
   const { data: procedures = [] } = useQuery<Procedure[]>({
     queryKey: ["/api/procedures"],
   });
-
-  // Group procedures by category with proper sorting
-  const proceduresByCategory = procedures.reduce((acc, procedure) => {
-    const category = procedure.category || "Other";
-    if (!acc[category]) {
-      acc[category] = [];
-    }
-    acc[category].push(procedure);
-    return acc;
-  }, {} as Record<string, Procedure[]>);
 
   // Define category order and emojis
   const categoryOrder = [
@@ -75,46 +65,30 @@ export function ProcedureSelector({ value, onChange, className, placeholder = "S
     "Other": "📋"
   };
 
-  // Filter all procedures based on search term
-  const filteredProcedures = procedures.filter(procedure =>
-    procedure.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Group filtered procedures by category
-  const filteredByCategory = filteredProcedures.reduce((acc, procedure) => {
-    const category = procedure.category || "Other";
-    if (!acc[category]) {
-      acc[category] = [];
-    }
-    acc[category].push(procedure);
-    return acc;
-  }, {} as Record<string, Procedure[]>);
-
   // Get current selection display
   const getDisplayValue = () => {
-    if (value?.customProcedureName) {
-      return value.customProcedureName;
+    if (value?.customProcedureName && value?.category) {
+      return `${emojiMap[value.category] || "📋"} ${value.category}: ${value.customProcedureName}`;
     }
-    if (value?.procedureId) {
-      const procedure = procedures.find(p => p.id === value.procedureId);
-      return procedure?.name || "Selected procedure";
+    if (value?.category && !value?.customProcedureName) {
+      return `${emojiMap[value.category] || "📋"} ${value.category} - Enter procedure name below`;
     }
     return placeholder;
   };
 
-  // Handle procedure selection
-  const handleProcedureSelect = (procedure: Procedure) => {
-    console.log("Handling procedure selection:", procedure);
-    if (procedure.name === "Other") {
-      setShowCustomInput(true);
-      setOpen(false);
-      onChange({ procedureId: procedure.id, customProcedureName: "" });
-    } else {
-      setShowCustomInput(false);
-      setCustomProcedureName("");
-      onChange({ procedureId: procedure.id, customProcedureName: undefined });
-      setOpen(false);
-    }
+  // Handle category selection
+  const handleCategorySelect = (category: string) => {
+    console.log("Category selected:", category);
+    setSelectedCategory(category);
+    setCategorySelected(true);
+    setOpen(false);
+    // Clear any existing custom procedure name and update with category
+    setCustomProcedureName("");
+    onChange({ 
+      procedureId: undefined, 
+      customProcedureName: undefined, 
+      category: category 
+    });
   };
 
   // Handle custom procedure name change
@@ -122,31 +96,36 @@ export function ProcedureSelector({ value, onChange, className, placeholder = "S
     setCustomProcedureName(customName);
     onChange({ 
       procedureId: undefined, 
-      customProcedureName: customName 
+      customProcedureName: customName,
+      category: selectedCategory || value?.category
     });
   };
 
-  // Handle add custom procedure button
-  const handleAddCustomProcedure = () => {
-    setShowCustomInput(true);
-    setOpen(false);
-    onChange({ procedureId: undefined, customProcedureName: "" });
+  // Handle clear/reset
+  const handleClear = () => {
+    setCategorySelected(false);
+    setSelectedCategory("");
+    setCustomProcedureName("");
+    onChange({ procedureId: undefined, customProcedureName: undefined, category: undefined });
   };
 
-  // Initialize custom input state if value has custom procedure name
+  // Initialize state from props
   useEffect(() => {
+    if (value?.category) {
+      setSelectedCategory(value.category);
+      setCategorySelected(true);
+    }
     if (value?.customProcedureName) {
-      setShowCustomInput(true);
       setCustomProcedureName(value.customProcedureName);
     }
-  }, [value?.customProcedureName]);
+  }, [value?.category, value?.customProcedureName]);
 
   return (
     <div className={cn("space-y-3", className)}>
-      {/* Single Procedure Selection */}
+      {/* Category Selection */}
       <div className="space-y-2">
         <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          Procedure
+          Procedure Category
         </Label>
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
@@ -158,7 +137,7 @@ export function ProcedureSelector({ value, onChange, className, placeholder = "S
             >
               <span className={cn(
                 "truncate",
-                !value?.procedureId && !value?.customProcedureName && "text-gray-500 dark:text-gray-400"
+                !selectedCategory && "text-gray-500 dark:text-gray-400"
               )}>
                 {getDisplayValue()}
               </span>
@@ -170,87 +149,53 @@ export function ProcedureSelector({ value, onChange, className, placeholder = "S
               <div className="flex items-center border-b border-gray-200 dark:border-gray-700 px-3">
                 <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
                 <CommandInput 
-                  placeholder="Search procedures..."
+                  placeholder="Search categories..."
                   className="border-0 focus:ring-0"
-                  value={searchTerm}
-                  onValueChange={setSearchTerm}
                 />
               </div>
               <CommandList className="max-h-80">
-                <CommandEmpty>No procedures found.</CommandEmpty>
+                <CommandEmpty>No categories found.</CommandEmpty>
                 
-                {/* Always show "Add Custom Procedure" option */}
-                <CommandGroup heading="Custom">
-                  <CommandItem
-                    onSelect={() => handleAddCustomProcedure()}
-                    className="cursor-pointer hover:bg-light-elevated dark:hover:bg-dark-elevated"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <i className="fas fa-plus text-blue-600 dark:text-blue-400"></i>
-                      <span className="font-medium text-blue-600 dark:text-blue-400">
-                        Add Custom Procedure
-                      </span>
-                    </div>
-                  </CommandItem>
+                {/* Show categories only */}
+                <CommandGroup heading="Select Procedure Category">
+                  {categoryOrder.map((category) => (
+                    <CommandItem
+                      key={category}
+                      onSelect={() => handleCategorySelect(category)}
+                      className="cursor-pointer hover:bg-light-elevated dark:hover:bg-dark-elevated"
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span>
+                          {emojiMap[category] || "📋"} {category}
+                        </span>
+                        <Check
+                          className={cn(
+                            "h-4 w-4",
+                            selectedCategory === category ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                      </div>
+                    </CommandItem>
+                  ))}
                 </CommandGroup>
-                
-                {/* Show procedures grouped by category */}
-                {categoryOrder.map(category => {
-                  const categoryProcedures = filteredByCategory[category];
-                  if (!categoryProcedures || categoryProcedures.length === 0) return null;
-                  
-                  return (
-                    <CommandGroup key={category} heading={`${emojiMap[category] || "📋"} ${category}`}>
-                      {categoryProcedures.map((procedure) => (
-                        <CommandItem
-                          key={procedure.id}
-                          value={`${procedure.id}-${procedure.name}`}
-                          onSelect={() => {
-                            console.log("Selected procedure:", procedure);
-                            handleProcedureSelect(procedure);
-                          }}
-                          className="cursor-pointer hover:bg-light-elevated dark:hover:bg-dark-elevated"
-                        >
-                          <div className="flex items-center justify-between w-full">
-                            <span className={cn(
-                              procedure.name === "Other" && "font-medium text-blue-600 dark:text-blue-400"
-                            )}>
-                              {procedure.name}
-                            </span>
-                            <Check
-                              className={cn(
-                                "h-4 w-4",
-                                value?.procedureId === procedure.id ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                          </div>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  );
-                })}
               </CommandList>
             </Command>
           </PopoverContent>
         </Popover>
       </div>
 
-      {/* Custom procedure name input */}
-      {showCustomInput && (
+      {/* Custom procedure name input - shown after category selection */}
+      {categorySelected && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="custom-procedure" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Custom Procedure Name
+              Procedure Name
             </Label>
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => {
-                setShowCustomInput(false);
-                setCustomProcedureName("");
-                onChange({ procedureId: undefined, customProcedureName: undefined });
-              }}
+              onClick={handleClear}
               className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             >
               <i className="fas fa-times mr-1"></i>
@@ -260,22 +205,22 @@ export function ProcedureSelector({ value, onChange, className, placeholder = "S
           <Input
             id="custom-procedure"
             type="text"
-            placeholder="Enter procedure name..."
+            placeholder={`Enter ${selectedCategory} procedure name...`}
             value={customProcedureName}
             onChange={(e) => handleCustomProcedureChange(e.target.value)}
             className="bg-light-elevated dark:bg-dark-elevated border-0 focus:ring-2 focus:ring-blue-500"
           />
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            Enter the specific name of the procedure not listed above
+            Enter the specific name of the {selectedCategory.toLowerCase()} procedure
           </p>
         </div>
       )}
 
-      {/* Show selected procedure info */}
-      {value?.procedureId && !showCustomInput && (
+      {/* Show selected category info */}
+      {selectedCategory && (
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="text-xs">
-            {emojiMap[procedures.find(p => p.id === value.procedureId)?.category || "Other"] || "📋"} {procedures.find(p => p.id === value.procedureId)?.category}
+            {emojiMap[selectedCategory] || "📋"} {selectedCategory}
           </Badge>
         </div>
       )}
