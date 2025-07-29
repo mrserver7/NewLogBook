@@ -513,7 +513,8 @@ export class MongoStorage implements IStorage {
 // use mock storage for testing. Otherwise use MongoDB.
 import { mockStorage } from './mock-storage';
 
-// For development testing when MongoDB is not available
+// For development testing when MongoDB is not available  
+// Set FORCE_MONGO=true to use MongoDB in development mode
 const useMongoStorage = process.env.NODE_ENV !== 'development' || process.env.FORCE_MONGO === 'true';
 
 export const storage: IStorage = useMongoStorage ? new MongoStorage() : mockStorage;

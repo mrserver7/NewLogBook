@@ -245,7 +245,7 @@ class MockStorage implements IStorage {
 
   // Case operations
   async getCases(userId: string, limit?: number): Promise<Case[]> {
-    const cases = Array.from(this.cases.values()).filter(c => c.userId === userId);
+    const cases = Array.from(this.cases.values()).filter(c => c.anesthesiologistId === userId);
     return limit ? cases.slice(0, limit) : cases;
   }
 
@@ -290,7 +290,7 @@ class MockStorage implements IStorage {
 
   async searchCases(userId: string, query: string): Promise<Case[]> {
     return Array.from(this.cases.values()).filter(c => 
-      c.userId === userId && 
+      c.anesthesiologistId === userId && 
       c.caseNumber.toLowerCase().includes(query.toLowerCase())
     );
   }
