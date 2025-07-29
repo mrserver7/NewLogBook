@@ -370,9 +370,6 @@ export default function NewCaseModal({ isOpen, onClose }: NewCaseModalProps) {
                 Selected: {formData.casePhoto.name}
               </p>
             )}
-            <p className="text-xs text-gray-500 mt-1">
-              Photo in state: {formData.casePhoto ? 'Yes' : 'No'}
-            </p>
           </div>
           
           <div className="flex items-center justify-end space-x-4">
