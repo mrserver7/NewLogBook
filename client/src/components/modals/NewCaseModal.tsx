@@ -153,6 +153,7 @@ export default function NewCaseModal({ isOpen, onClose }: NewCaseModalProps) {
       ...formData,
       procedureId: formData.procedure.procedureId || null,
       customProcedureName: formData.procedure.customProcedureName || null,
+      procedureCategory: formData.procedure.category || null,
       preOpNotes: formData.notes,
       status: "completed",
     };

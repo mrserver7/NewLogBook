@@ -160,6 +160,7 @@ export const insertCaseSchema = z.object({
   surgeonName: z.string().optional(),
   procedureId: z.number().nullable().optional(),
   customProcedureName: z.string().nullable().optional(),
+  procedureCategory: z.string().nullable().optional(),
   anesthesiologistId: z.string(),
   supervisorId: z.string().optional(),
   anesthesiaType: z.string(),
