@@ -252,7 +252,10 @@ export default function NewCaseModal({ isOpen, onClose }: NewCaseModalProps) {
               regionalBlockType={formData.regionalBlockType}
               customRegionalBlock={formData.customRegionalBlock}
               onAnesthesiaTypeChange={(value) => setFormData({ ...formData, anesthesiaType: value, regionalBlockType: "", customRegionalBlock: "" })}
-              onRegionalBlockTypeChange={(value) => setFormData({ ...formData, regionalBlockType: value, customRegionalBlock: value === "Other" ? "" : "" })}
+              onRegionalBlockTypeChange={(value) => {
+                console.log("Regional block type changed to:", value);
+                setFormData({ ...formData, regionalBlockType: value, customRegionalBlock: value === "Other" ? "" : "" });
+              }}
               onCustomRegionalBlockChange={(value) => setFormData({ ...formData, customRegionalBlock: value })}
               required={true}
             />
