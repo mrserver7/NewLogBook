@@ -53,12 +53,7 @@ export function AnesthesiaSelector({
           <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Regional Block Type
           </Label>
-          <Select value={regionalBlockType} onValueChange={(value) => {
-            onRegionalBlockTypeChange(value);
-            if (value !== "Other" && onCustomRegionalBlockChange) {
-              onCustomRegionalBlockChange("");
-            }
-          }}>
+          <Select value={regionalBlockType} onValueChange={onRegionalBlockTypeChange}>
             <SelectTrigger className="bg-light-elevated dark:bg-dark-elevated border-0 focus:ring-2 focus:ring-blue-500">
               <SelectValue placeholder="Select regional block..." />
             </SelectTrigger>

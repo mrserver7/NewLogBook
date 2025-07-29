@@ -153,6 +153,7 @@ export default function NewCaseModal({ isOpen, onClose }: NewCaseModalProps) {
       ...formData,
       procedureId: formData.procedure.procedureId || null,
       customProcedureName: formData.procedure.customProcedureName || null,
+      procedureCategory: formData.procedure.category || null,
       preOpNotes: formData.notes,
       status: "completed",
     };
@@ -259,7 +260,7 @@ export default function NewCaseModal({ isOpen, onClose }: NewCaseModalProps) {
               onRegionalBlockTypeChange={(value) => {
                 console.log("Regional block type changed to:", value);
                 console.log("Current form data before update:", formData);
-                const newFormData = { ...formData, regionalBlockType: value, customRegionalBlock: value === "Other" ? "" : "" };
+                const newFormData = { ...formData, regionalBlockType: value, customRegionalBlock: value !== "Other" ? "" : formData.customRegionalBlock };
                 console.log("New form data after update:", newFormData);
                 setFormData(newFormData);
               }}

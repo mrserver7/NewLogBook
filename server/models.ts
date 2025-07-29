@@ -84,6 +84,7 @@ const caseSchema = new Schema({
   surgeonName: { type: String },
   procedureId: { type: Number },
   customProcedureName: { type: String },
+  procedureCategory: { type: String },
   anesthesiologistId: { type: String, required: true },
   supervisorId: { type: String },
   anesthesiaType: { type: String, required: true },

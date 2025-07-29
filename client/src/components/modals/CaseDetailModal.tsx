@@ -515,10 +515,10 @@ export default function CaseDetailModal({ isOpen, onClose, caseId }: CaseDetailM
                           <p className="text-gray-900 dark:text-gray-100">
                             {caseDetails.procedure?.name || caseDetails.customProcedureName || "Not specified"}
                           </p>
-                          {caseDetails.procedure?.category && (
-                            <p className="text-sm text-gray-600 dark:text-gray-400">Category: {caseDetails.procedure.category}</p>
+                          {(caseDetails.procedure?.category || caseDetails.procedureCategory) && (
+                            <p className="text-sm text-gray-600 dark:text-gray-400">Category: {caseDetails.procedure?.category || caseDetails.procedureCategory}</p>
                           )}
-                          {caseDetails.customProcedureName && (
+                          {caseDetails.customProcedureName && !caseDetails.procedureCategory && (
                             <p className="text-sm text-gray-600 dark:text-gray-400">Custom Procedure</p>
                           )}
                         </div>
