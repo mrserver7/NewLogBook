@@ -259,7 +259,7 @@ export default function NewCaseModal({ isOpen, onClose }: NewCaseModalProps) {
               onRegionalBlockTypeChange={(value) => {
                 console.log("Regional block type changed to:", value);
                 console.log("Current form data before update:", formData);
-                const newFormData = { ...formData, regionalBlockType: value, customRegionalBlock: value === "Other" ? "" : "" };
+                const newFormData = { ...formData, regionalBlockType: value, customRegionalBlock: value !== "Other" ? "" : formData.customRegionalBlock };
                 console.log("New form data after update:", newFormData);
                 setFormData(newFormData);
               }}
