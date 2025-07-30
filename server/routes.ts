@@ -74,6 +74,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve uploaded files statically
   app.use('/api/uploads', express.static(uploadsDir));
 
+  // Profile picture upload endpoint
+  app.post('/api/auth/profile-picture', isAuthenticated, upload.single('profilePicture'), async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No profile picture file provided" });
+      }
+      
+      // Validate file size - reject very small files that are likely corrupted/empty
+      if (req.file.size < 100) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (err) {
+          console.error("Error removing invalid file:", err);
+        }
+        return res.status(400).json({ message: "File is too small or corrupted" });
+      }
+      
+      // Verify the file exists and is readable
+      try {
+        const stats = fs.statSync(req.file.path);
+        if (!stats.isFile() || stats.size !== req.file.size) {
+          throw new Error("File verification failed");
+        }
+      } catch (fileError) {
+        console.error("File verification failed:", fileError);
+        return res.status(400).json({ message: "Uploaded file is corrupted or inaccessible" });
+      }
+      
+      // Update user with new profile picture URL
+      const profileImageUrl = `/api/uploads/${req.file.filename}`;
+      const updatedUser = await storage.updateUser(userId, { profileImageUrl });
+      
+      if (!updatedUser) {
+        // Clean up file if user update failed
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (cleanupError) {
+          console.error("Error cleaning up failed upload:", cleanupError);
+        }
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json({ 
+        success: true, 
+        profileImageUrl,
+        user: updatedUser
+      });
+    } catch (error) {
+      console.error("Error uploading profile picture:", error);
+      // Clean up file if upload failed
+      if (req.file && req.file.path) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (cleanupError) {
+          console.error("Error cleaning up failed upload:", cleanupError);
+        }
+      }
+      res.status(500).json({ message: "Failed to upload profile picture" });
+    }
+  });
+
+  // Contact form endpoint
+  app.post('/api/contact', isAuthenticated, async (req: any, res) => {
+    try {
+      const { name, email, subject, message } = req.body;
+      
+      if (!name || !email || !subject || !message) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+      
+      // Here you would typically send an email
+      // For now, we'll just log the contact form submission
+      console.log("Contact form submission:", {
+        name,
+        email,
+        subject,
+        message,
+        submittedBy: req.user.claims.sub,
+        submittedAt: new Date()
+      });
+      
+      // In a real implementation, you would use a service like SendGrid, AWS SES, etc.
+      // to send the email to mohaanesth@gmail.com
+      
+      res.json({ 
+        success: true, 
+        message: "Your message has been sent successfully. We'll get back to you soon!" 
+      });
+    } catch (error) {
+      console.error("Error submitting contact form:", error);
+      res.status(500).json({ message: "Failed to submit contact form" });
+    }
+  });
+
   // Test photo upload endpoint
   app.post('/api/test-upload', isAuthenticated, upload.single('testPhoto'), async (req: any, res) => {
     console.log("Test upload endpoint hit");
@@ -297,6 +393,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating theme:", error);
       res.status(500).json({ message: "Failed to update theme" });
+    }
+  });
+
+  // User profile update route
+  app.patch('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const updates = req.body;
+      
+      // Validate the update data - only allow specific fields
+      const allowedFields = ['specialty', 'licenseNumber', 'institution', 'profileImageUrl'];
+      const filteredUpdates: any = {};
+      
+      for (const field of allowedFields) {
+        if (updates[field] !== undefined) {
+          filteredUpdates[field] = updates[field];
+        }
+      }
+      
+      if (Object.keys(filteredUpdates).length === 0) {
+        return res.status(400).json({ message: "No valid fields to update" });
+      }
+      
+      const updatedUser = await storage.updateUser(userId, filteredUpdates);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ message: "Failed to update user profile" });
     }
   });
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import MainLayout from "@/components/layout/MainLayout";
@@ -104,6 +104,20 @@ export default function NewCase() {
   const { data: templates = [] } = useQuery<any[]>({
     queryKey: ["/api/case-templates"],
   });
+
+  const { data: userPreferences } = useQuery({
+    queryKey: ["/api/user-preferences"],
+  });
+
+  // Set default anesthesia type from user preferences when available
+  useEffect(() => {
+    if (userPreferences?.defaultAnesthesiaType && !formData.anesthesiaType) {
+      setFormData(prev => ({
+        ...prev,
+        anesthesiaType: userPreferences.defaultAnesthesiaType
+      }));
+    }
+  }, [userPreferences, formData.anesthesiaType]);
 
   const createCaseMutation = useMutation({
     mutationFn: async (caseData: any) => {
