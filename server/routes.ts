@@ -516,8 +516,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate file size - reject very small files that are likely corrupted/empty
       if (req.file.size < 100) {
         // Remove the uploaded file if it's too small
-        fs.unlinkSync(req.file.path);
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (err) {
+          console.error("Error removing invalid file:", err);
+        }
         return res.status(400).json({ message: "File is too small or corrupted" });
+      }
+      
+      // Verify the file exists and is readable
+      try {
+        const stats = fs.statSync(req.file.path);
+        if (!stats.isFile() || stats.size !== req.file.size) {
+          throw new Error("File verification failed");
+        }
+      } catch (fileError) {
+        console.error("File verification failed:", fileError);
+        return res.status(400).json({ message: "Uploaded file is corrupted or inaccessible" });
       }
       
       const photoData = {
@@ -530,9 +545,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const newPhoto = await storage.createCasePhoto(photoData);
-      res.status(201).json(newPhoto);
+      
+      // Return the photo data with full URL for immediate access
+      const photoWithUrl = {
+        ...newPhoto,
+        url: `/api/uploads/${newPhoto.fileName}`
+      };
+      
+      res.status(201).json(photoWithUrl);
     } catch (error) {
       console.error("Error uploading photo:", error);
+      // Clean up file if database save failed
+      if (req.file && req.file.path) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (cleanupError) {
+          console.error("Error cleaning up failed upload:", cleanupError);
+        }
+      }
       res.status(500).json({ message: "Failed to upload photo" });
     }
   });
@@ -545,7 +575,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       
       // Helper function to safely parse integers from FormData
-      const parseIntOrNull = (value) => {
+      const parseIntOrNull = (value: any) => {
         if (!value || value === "" || value === "null" || value === "undefined") {
           return null;
         }
@@ -646,21 +676,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Handle photo upload if a file was uploaded
       if (req.file) {
         console.log("Saving uploaded photo:", req.file);
-        const photoData = {
-          caseId: newCase.id,
-          fileName: req.file.filename,
-          originalName: req.file.originalname,
-          mimeType: req.file.mimetype,
-          size: req.file.size,
-          uploadedBy: userId,
-        };
         
-        try {
-          await storage.createCasePhoto(photoData);
-          console.log("Photo saved successfully");
-        } catch (photoError) {
-          console.error("Error saving photo:", photoError);
-          // Don't fail the case creation if photo save fails
+        // Validate file before saving to database
+        if (req.file.size >= 100) {
+          try {
+            // Verify the file exists and is readable
+            const stats = fs.statSync(req.file.path);
+            if (stats.isFile() && stats.size === req.file.size) {
+              const photoData = {
+                caseId: newCase.id,
+                fileName: req.file.filename,
+                originalName: req.file.originalname,
+                mimeType: req.file.mimetype,
+                size: req.file.size,
+                uploadedBy: userId,
+              };
+              
+              await storage.createCasePhoto(photoData);
+              console.log("Photo saved successfully");
+            } else {
+              console.error("Photo file verification failed - size mismatch");
+            }
+          } catch (photoError) {
+            console.error("Error saving photo:", photoError);
+            // Clean up the file if database save failed
+            try {
+              fs.unlinkSync(req.file.path);
+            } catch (cleanupError) {
+              console.error("Error cleaning up failed photo:", cleanupError);
+            }
+          }
+        } else {
+          console.error("Photo file too small, removing:", req.file.size);
+          try {
+            fs.unlinkSync(req.file.path);
+          } catch (cleanupError) {
+            console.error("Error removing small photo file:", cleanupError);
+          }
         }
       }
       
@@ -872,6 +924,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating user:", error);
       res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  // Admin access to all cases - for evaluation purposes
+  app.get('/api/admin/cases', isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const { limit, offset } = req.query;
+      const cases = await storage.getAllCases(
+        limit ? parseInt(limit as string) : undefined,
+        offset ? parseInt(offset as string) : undefined
+      );
+      res.json(cases);
+    } catch (error) {
+      console.error("Error fetching all cases:", error);
+      res.status(500).json({ message: "Failed to fetch cases" });
+    }
+  });
+
+  // Admin access to any specific case
+  app.get('/api/admin/cases/:id', isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const caseData = await storage.getCase(id);
+      
+      if (!caseData) {
+        return res.status(404).json({ message: "Case not found" });
+      }
+      
+      res.json(caseData);
+    } catch (error) {
+      console.error("Error fetching case:", error);
+      res.status(500).json({ message: "Failed to fetch case" });
+    }
+  });
+
+  // Admin access to photos for any case
+  app.get('/api/admin/cases/:id/photos', isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const caseId = parseInt(req.params.id);
+      const photos = await storage.getAllCasePhotos(caseId);
+      res.json(photos);
+    } catch (error) {
+      console.error("Error fetching case photos:", error);
+      res.status(500).json({ message: "Failed to fetch case photos" });
     }
   });
 

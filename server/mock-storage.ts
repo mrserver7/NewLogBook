@@ -414,7 +414,7 @@ class MockStorage implements IStorage {
   }
 
   async getCaseStats(userId: string): Promise<any> {
-    const userCases = Array.from(this.cases.values()).filter(c => c.userId === userId);
+    const userCases = Array.from(this.cases.values()).filter(c => c.anesthesiologistId === userId);
     return {
       totalCases: userCases.length,
       casesThisMonth: userCases.filter(c => {
@@ -432,14 +432,74 @@ class MockStorage implements IStorage {
     };
   }
 
+  async getCasesByDateRange(userId: string, startDate: string, endDate: string): Promise<any[]> {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    return Array.from(this.cases.values())
+      .filter(c => c.anesthesiologistId === userId)
+      .filter(c => {
+        const caseDate = new Date(c.caseDate);
+        return caseDate >= start && caseDate <= end;
+      })
+      .sort((a, b) => new Date(b.caseDate).getTime() - new Date(a.caseDate).getTime());
+  }
+
+  async clearAllProcedures(): Promise<void> {
+    this.procedures.clear();
+  }
+
+  async getSystemStats(): Promise<any> {
+    return {
+      totalCases: this.cases.size,
+      totalPatients: this.patients.size,
+      totalSurgeons: this.surgeons.size,
+    };
+  }
+
+  async upsertUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences> {
+    const existing = this.userPreferences.get(preferences.userId);
+    const updatedPrefs = {
+      ...existing,
+      ...preferences,
+      id: existing?.id || this.nextId++,
+      createdAt: existing?.createdAt || new Date(),
+      updatedAt: new Date(),
+    } as UserPreferences;
+    
+    this.userPreferences.set(preferences.userId, updatedPrefs);
+    return updatedPrefs;
+  }
+
   async getAllUsers(limit?: number): Promise<User[]> {
     const users = Array.from(this.users.values());
     return limit ? users.slice(0, limit) : users;
   }
 
-  async getAllCases(limit?: number): Promise<Case[]> {
-    const cases = Array.from(this.cases.values());
-    return limit ? cases.slice(0, limit) : cases;
+  async getAllCases(limit?: number, offset?: number): Promise<Case[]> {
+    let cases = Array.from(this.cases.values()).sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
+    
+    if (offset) {
+      cases = cases.slice(offset);
+    }
+    if (limit) {
+      cases = cases.slice(0, limit);
+    }
+    
+    return cases;
+  }
+
+  async getAllCasePhotos(caseId: number): Promise<CasePhoto[]> {
+    return Array.from(this.casePhotos.values())
+      .filter(photo => photo.caseId === caseId)
+      .sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateA - dateB;
+      });
   }
 }
 

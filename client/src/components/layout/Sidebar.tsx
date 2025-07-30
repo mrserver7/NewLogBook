@@ -25,6 +25,7 @@ export default function Sidebar({ className }: SidebarProps) {
 
   const adminItems = [
     { path: "/admin/users", icon: "fas fa-users-cog", label: "User Management" },
+    { path: "/admin/all-cases", icon: "fas fa-clipboard-list", label: "All Cases" },
     { path: "/admin/analytics", icon: "fas fa-chart-pie", label: "System Analytics" },
   ];
 
