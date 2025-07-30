@@ -348,6 +348,15 @@ class MockStorage implements IStorage {
     return newPhoto;
   }
 
+  async getAllPhotos(): Promise<CasePhoto[]> {
+    return Array.from(this.casePhotos.values())
+      .sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateA - dateB;
+      });
+  }
+
   async deleteCasePhoto(id: number): Promise<void> {
     this.casePhotos.delete(id);
   }
@@ -489,7 +498,21 @@ class MockStorage implements IStorage {
       cases = cases.slice(0, limit);
     }
     
-    return cases;
+    // Enrich each case with user email
+    const enrichedCases = cases.map(caseItem => {
+      let userEmail = null;
+      if (caseItem.anesthesiologistId) {
+        const user = this.users.get(caseItem.anesthesiologistId);
+        userEmail = user?.email || null;
+      }
+      
+      return {
+        ...caseItem,
+        userEmail: userEmail,
+      } as any;
+    });
+    
+    return enrichedCases;
   }
 
   async getAllCasePhotos(caseId: number): Promise<CasePhoto[]> {
