@@ -535,6 +535,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Uploaded file is corrupted or inaccessible" });
       }
       
+      // Check for duplicate files by comparing size and name to prevent multiple uploads
+      const existingPhotos = await storage.getCasePhotos(caseId);
+      const isDuplicate = existingPhotos.some(photo => 
+        photo.size === req.file.size && 
+        photo.originalName === req.file.originalname
+      );
+      
+      if (isDuplicate) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (err) {
+          console.error("Error removing duplicate file:", err);
+        }
+        return res.status(400).json({ message: "This file has already been uploaded for this case" });
+      }
+      
       const photoData = {
         caseId: caseId,
         fileName: req.file.filename,
@@ -683,19 +699,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Verify the file exists and is readable
             const stats = fs.statSync(req.file.path);
             if (stats.isFile() && stats.size === req.file.size) {
-              const photoData = {
-                caseId: newCase.id,
-                fileName: req.file.filename,
-                originalName: req.file.originalname,
-                mimeType: req.file.mimetype,
-                size: req.file.size,
-                uploadedBy: userId,
-              };
-              
-              await storage.createCasePhoto(photoData);
-              console.log("Photo saved successfully");
+              // Check for potential duplicate by size and mimetype to avoid saving corrupted files
+              if (req.file.mimetype && req.file.mimetype.startsWith('image/')) {
+                const photoData = {
+                  caseId: newCase.id,
+                  fileName: req.file.filename,
+                  originalName: req.file.originalname,
+                  mimeType: req.file.mimetype,
+                  size: req.file.size,
+                  uploadedBy: userId,
+                };
+                
+                await storage.createCasePhoto(photoData);
+                console.log("Photo saved successfully");
+              } else {
+                console.error("Photo file is not a valid image type:", req.file.mimetype);
+                try {
+                  fs.unlinkSync(req.file.path);
+                } catch (cleanupError) {
+                  console.error("Error removing invalid image file:", cleanupError);
+                }
+              }
             } else {
               console.error("Photo file verification failed - size mismatch");
+              try {
+                fs.unlinkSync(req.file.path);
+              } catch (cleanupError) {
+                console.error("Error removing corrupted file:", cleanupError);
+              }
             }
           } catch (photoError) {
             console.error("Error saving photo:", photoError);
@@ -968,6 +999,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching case photos:", error);
       res.status(500).json({ message: "Failed to fetch case photos" });
+    }
+  });
+
+  // Admin endpoint to clean up corrupted photos
+  app.post('/api/admin/cleanup-photos', isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const photos = await storage.getAllPhotos();
+      let cleanedCount = 0;
+      
+      for (const photo of photos) {
+        const filePath = path.join(uploadsDir, photo.fileName);
+        try {
+          if (!fs.existsSync(filePath) || fs.statSync(filePath).size < 100) {
+            // Remove database entry for missing or corrupted files
+            await storage.deleteCasePhoto(photo.id);
+            cleanedCount++;
+            console.log(`Cleaned up corrupted photo: ${photo.fileName}`);
+          }
+        } catch (error) {
+          console.error(`Error checking photo ${photo.fileName}:`, error);
+        }
+      }
+      
+      res.json({ message: `Cleaned up ${cleanedCount} corrupted photos` });
+    } catch (error) {
+      console.error("Error cleaning up photos:", error);
+      res.status(500).json({ message: "Failed to clean up photos" });
     }
   });
 

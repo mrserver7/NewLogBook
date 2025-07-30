@@ -85,6 +85,9 @@ export interface IStorage {
   // Admin case operations
   getAllCases(limit?: number, offset?: number): Promise<any[]>;
   getAllCasePhotos(caseId: number): Promise<CasePhoto[]>;
+  // Photo management
+  getAllPhotos(): Promise<CasePhoto[]>;
+  deleteCasePhoto(photoId: number): Promise<void>;
   
   // User preferences
   getUserPreferences(userId: string): Promise<UserPreferences | undefined>;
@@ -522,12 +525,44 @@ export class MongoStorage implements IStorage {
     }
     
     const docs = await query.lean().exec();
-    return docs as any;
+    
+    // Enrich each case with user email
+    const result: any[] = [];
+    for (const caseDoc of docs) {
+      let userEmail = null;
+      if (caseDoc.anesthesiologistId) {
+        try {
+          console.log("Looking up user for anesthesiologistId:", caseDoc.anesthesiologistId);
+          const user = await UserModel.findOne({ id: caseDoc.anesthesiologistId }).lean().exec();
+          console.log("Found user:", user ? { id: user.id, email: user.email } : "null");
+          userEmail = user?.email || null;
+        } catch (error) {
+          console.error("Error fetching user for case:", caseDoc.id, error);
+        }
+      }
+      
+      result.push({
+        ...caseDoc,
+        userEmail: userEmail,
+      });
+    }
+    
+    console.log("Final result with emails:", result.map(c => ({ id: c.id, anesthesiologistId: c.anesthesiologistId, userEmail: c.userEmail })));
+    return result;
   }
 
   async getAllCasePhotos(caseId: number): Promise<CasePhoto[]> {
     const docs = await CasePhotoModel.find({ caseId }).sort({ createdAt: 1 }).lean().exec();
     return docs as any;
+  }
+
+  async getAllPhotos(): Promise<CasePhoto[]> {
+    const docs = await CasePhotoModel.find({}).sort({ createdAt: 1 }).lean().exec();
+    return docs as any;
+  }
+
+  async deleteCasePhoto(photoId: number): Promise<void> {
+    await CasePhotoModel.deleteOne({ id: photoId }).exec();
   }
 }
 
