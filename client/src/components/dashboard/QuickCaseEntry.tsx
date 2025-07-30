@@ -55,7 +55,7 @@ export default function QuickCaseEntry() {
         patientId: "",
         procedure: { procedureId: undefined, customProcedureName: undefined, category: undefined } as { procedureId?: number; customProcedureName?: string; category?: string },
         surgeonName: "",
-        anesthesiaType: "",
+        anesthesiaType: preferences?.defaultAnesthesiaType || "",
         regionalBlockType: "",
         customRegionalBlock: "",
         caseDate: new Date().toISOString().split('T')[0],

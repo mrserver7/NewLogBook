@@ -67,7 +67,7 @@ export default function NewCaseModal({ isOpen, onClose }: NewCaseModalProps) {
         patientId: "",
         procedure: { procedureId: undefined, customProcedureName: undefined, category: undefined } as { procedureId?: number; customProcedureName?: string; category?: string },
         surgeonName: "",
-        anesthesiaType: "",
+        anesthesiaType: preferences?.defaultAnesthesiaType || "",
         regionalBlockType: "",
         customRegionalBlock: "",
         asaScore: "",
