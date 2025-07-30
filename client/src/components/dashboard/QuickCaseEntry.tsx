@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,20 @@ export default function QuickCaseEntry() {
   const { data: procedures } = useQuery({
     queryKey: ["/api/procedures", { limit: 20 }],
   });
+
+  const { data: preferences } = useQuery({
+    queryKey: ["/api/user-preferences"],
+  });
+
+  // Update form with default values when preferences load
+  useEffect(() => {
+    if (preferences?.defaultAnesthesiaType) {
+      setFormData(prev => ({
+        ...prev,
+        anesthesiaType: preferences.defaultAnesthesiaType,
+      }));
+    }
+  }, [preferences]);
 
   const createCaseMutation = useMutation({
     mutationFn: async (caseData: any) => {

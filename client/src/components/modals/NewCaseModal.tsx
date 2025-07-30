@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,6 @@ interface NewCaseModalProps {
 export default function NewCaseModal({ isOpen, onClose }: NewCaseModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
     patientName: "",
@@ -37,55 +36,25 @@ export default function NewCaseModal({ isOpen, onClose }: NewCaseModalProps) {
     inductionMedications: "",
     maintenanceMedications: "",
     postOpMedications: "",
-    casePhoto: null as File | null,
   });
 
-  console.log("NewCaseModal rendered, photo in state:", !!formData.casePhoto);
-  console.log("Current form data:", {
-    anesthesiaType: formData.anesthesiaType,
-    regionalBlockType: formData.regionalBlockType,
-    customRegionalBlock: formData.customRegionalBlock
+  const { data: preferences } = useQuery({
+    queryKey: ["/api/user-preferences"],
   });
+
+  // Update form with default values when preferences load
+  useEffect(() => {
+    if (preferences?.defaultAnesthesiaType) {
+      setFormData(prev => ({
+        ...prev,
+        anesthesiaType: preferences.defaultAnesthesiaType,
+      }));
+    }
+  }, [preferences]);
 
   const createCaseMutation = useMutation({
     mutationFn: async (caseData: any) => {
-      console.log("Mutation called with data:", caseData);
-      console.log("Photo present:", !!caseData.casePhoto);
-      
-      // Try to get photo from file input as backup
-      const photoFile = caseData.casePhoto || (fileInputRef.current?.files?.[0]);
-      console.log("Final photo file:", photoFile);
-      
-      // If there's a photo, use FormData for multipart upload
-      if (photoFile) {
-        const formDataForUpload = new FormData();
-        
-        // Add all case data except the photo
-        const { casePhoto, ...caseDataWithoutPhoto } = caseData;
-        Object.keys(caseDataWithoutPhoto).forEach(key => {
-          formDataForUpload.append(key, caseDataWithoutPhoto[key]);
-        });
-        
-        // Add the photo file
-        formDataForUpload.append('casePhoto', photoFile);
-        
-        // Use fetch directly for FormData upload
-        const response = await fetch('/api/cases', {
-          method: 'POST',
-          body: formDataForUpload,
-          // Don't set Content-Type header - let browser set it with boundary
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        return await response.json();
-      } else {
-        // Remove casePhoto from data and use regular JSON request
-        const { casePhoto, ...caseDataWithoutPhoto } = caseData;
-        await apiRequest("POST", "/api/cases", caseDataWithoutPhoto);
-      }
+      await apiRequest("POST", "/api/cases", caseData);
     },
     onSuccess: () => {
       toast({
@@ -108,7 +77,6 @@ export default function NewCaseModal({ isOpen, onClose }: NewCaseModalProps) {
         inductionMedications: "",
         maintenanceMedications: "",
         postOpMedications: "",
-        casePhoto: null,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases/stats"] });
@@ -356,31 +324,6 @@ export default function NewCaseModal({ isOpen, onClose }: NewCaseModalProps) {
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               className="bg-light-elevated dark:bg-dark-elevated border-0 focus:ring-2 focus:ring-blue-500"
             />
-          </div>
-
-          {/* Photo Upload */}
-          <div>
-            <Label htmlFor="casePhoto" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Case Photo (Optional)
-            </Label>
-            <input
-              ref={fileInputRef}
-              id="casePhoto"
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                const file = e.target.files?.[0] || null;
-                console.log("Photo selected:", file);
-                console.log("Setting form data with photo:", !!file);
-                setFormData(prev => ({ ...prev, casePhoto: file }));
-              }}
-              className="bg-light-elevated dark:bg-dark-elevated border-0 focus:ring-2 focus:ring-blue-500 w-full p-2 rounded-md"
-            />
-            {formData.casePhoto && (
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Selected: {formData.casePhoto.name}
-              </p>
-            )}
           </div>
           
           <div className="flex items-center justify-end space-x-4">
