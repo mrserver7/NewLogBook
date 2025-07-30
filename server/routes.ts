@@ -71,8 +71,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.redirect(302, `/api/auth/callback${qs}`);
   });
 
-  // Serve uploaded files statically
-  app.use('/api/uploads', express.static(uploadsDir));
+  // Serve uploaded files statically with better error handling
+  app.use('/api/uploads', (req, res, next) => {
+    const filePath = path.join(uploadsDir, req.path);
+    
+    // Check if file exists before serving
+    fs.stat(filePath, (err, stats) => {
+      if (err) {
+        console.error("File not found:", filePath);
+        return res.status(404).json({ message: "File not found" });
+      }
+      
+      // Check if file is too small (likely corrupted)
+      if (stats.size < 100) {
+        console.error("File too small, likely corrupted:", filePath, "size:", stats.size);
+        return res.status(404).json({ message: "File corrupted or empty" });
+      }
+      
+      // File exists and is valid, serve it
+      express.static(uploadsDir)(req, res, next);
+    });
+  });
+
+  // Profile picture upload endpoint
+  app.post('/api/auth/profile-picture', isAuthenticated, upload.single('profilePicture'), async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No profile picture file provided" });
+      }
+      
+      // Validate file size - reject very small files that are likely corrupted/empty
+      if (req.file.size < 100) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (err) {
+          console.error("Error removing invalid file:", err);
+        }
+        return res.status(400).json({ message: "File is too small or corrupted" });
+      }
+      
+      // Verify the file exists and is readable
+      try {
+        const stats = fs.statSync(req.file.path);
+        if (!stats.isFile() || stats.size !== req.file.size) {
+          throw new Error("File verification failed");
+        }
+      } catch (fileError) {
+        console.error("File verification failed:", fileError);
+        return res.status(400).json({ message: "Uploaded file is corrupted or inaccessible" });
+      }
+      
+      // Update user with new profile picture URL
+      const profileImageUrl = `/api/uploads/${req.file.filename}`;
+      const updatedUser = await storage.updateUser(userId, { profileImageUrl });
+      
+      if (!updatedUser) {
+        // Clean up file if user update failed
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (cleanupError) {
+          console.error("Error cleaning up failed upload:", cleanupError);
+        }
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json({ 
+        success: true, 
+        profileImageUrl,
+        user: updatedUser
+      });
+    } catch (error) {
+      console.error("Error uploading profile picture:", error);
+      // Clean up file if upload failed
+      if (req.file && req.file.path) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (cleanupError) {
+          console.error("Error cleaning up failed upload:", cleanupError);
+        }
+      }
+      res.status(500).json({ message: "Failed to upload profile picture" });
+    }
+  });
+
+  // Contact form endpoint
+  app.post('/api/contact', isAuthenticated, async (req: any, res) => {
+    try {
+      const { name, email, subject, message } = req.body;
+      
+      if (!name || !email || !subject || !message) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+      
+      // Here you would typically send an email
+      // For now, we'll just log the contact form submission
+      console.log("Contact form submission:", {
+        name,
+        email,
+        subject,
+        message,
+        submittedBy: req.user.claims.sub,
+        submittedAt: new Date()
+      });
+      
+      // In a real implementation, you would use a service like SendGrid, AWS SES, etc.
+      // to send the email to mohaanesth@gmail.com
+      
+      res.json({ 
+        success: true, 
+        message: "Your message has been sent successfully. We'll get back to you soon!" 
+      });
+    } catch (error) {
+      console.error("Error submitting contact form:", error);
+      res.status(500).json({ message: "Failed to submit contact form" });
+    }
+  });
 
   // Test photo upload endpoint
   app.post('/api/test-upload', isAuthenticated, upload.single('testPhoto'), async (req: any, res) => {
@@ -300,6 +415,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User profile update route
+  app.patch('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const updates = req.body;
+      
+      // Validate the update data - only allow specific fields
+      const allowedFields = ['specialty', 'licenseNumber', 'institution', 'profileImageUrl'];
+      const filteredUpdates: any = {};
+      
+      for (const field of allowedFields) {
+        if (updates[field] !== undefined) {
+          filteredUpdates[field] = updates[field];
+        }
+      }
+      
+      if (Object.keys(filteredUpdates).length === 0) {
+        return res.status(400).json({ message: "No valid fields to update" });
+      }
+      
+      const updatedUser = await storage.updateUser(userId, filteredUpdates);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ message: "Failed to update user profile" });
+    }
+  });
+
   // Patient routes
   app.get('/api/patients', isAuthenticated, async (req: any, res) => {
     try {
@@ -509,30 +657,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const caseId = parseInt(req.params.id);
       const userId = req.user.claims.sub;
       
+      console.log("Photo upload request for case:", caseId);
+      console.log("File received:", req.file ? {
+        filename: req.file.filename,
+        originalname: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype
+      } : "No file");
+      
       if (!req.file) {
         return res.status(400).json({ message: "No photo file provided" });
       }
       
-      // Validate file size - reject very small files that are likely corrupted/empty
-      if (req.file.size < 100) {
-        // Remove the uploaded file if it's too small
+      // Enhanced validation: check if file exists on disk and has valid content
+      try {
+        const stats = fs.statSync(req.file.path);
+        console.log("File stats:", { exists: stats.isFile(), diskSize: stats.size, uploadSize: req.file.size });
+        
+        if (!stats.isFile()) {
+          console.error("Uploaded file is not a valid file");
+          return res.status(400).json({ message: "Invalid file upload" });
+        }
+        
+        // Check both multer reported size and actual disk size
+        if (stats.size < 100 || req.file.size < 100) {
+          console.error("File too small - disk size:", stats.size, "upload size:", req.file.size);
+          try {
+            fs.unlinkSync(req.file.path);
+          } catch (err) {
+            console.error("Error removing small file:", err);
+          }
+          return res.status(400).json({ message: "File is too small or corrupted" });
+        }
+        
+        // Verify sizes match (detect corruption)
+        if (stats.size !== req.file.size) {
+          console.error("File size mismatch - disk:", stats.size, "upload:", req.file.size);
+          try {
+            fs.unlinkSync(req.file.path);
+          } catch (err) {
+            console.error("Error removing corrupted file:", err);
+          }
+          return res.status(400).json({ message: "File upload corrupted" });
+        }
+        
+      } catch (fileError) {
+        console.error("File validation failed:", fileError);
+        return res.status(400).json({ message: "Uploaded file is inaccessible" });
+      }
+      
+      // Validate file type more strictly
+      if (!req.file.mimetype || !req.file.mimetype.startsWith('image/')) {
+        console.error("Invalid file type:", req.file.mimetype);
         try {
           fs.unlinkSync(req.file.path);
         } catch (err) {
-          console.error("Error removing invalid file:", err);
+          console.error("Error removing invalid file type:", err);
         }
-        return res.status(400).json({ message: "File is too small or corrupted" });
-      }
-      
-      // Verify the file exists and is readable
-      try {
-        const stats = fs.statSync(req.file.path);
-        if (!stats.isFile() || stats.size !== req.file.size) {
-          throw new Error("File verification failed");
-        }
-      } catch (fileError) {
-        console.error("File verification failed:", fileError);
-        return res.status(400).json({ message: "Uploaded file is corrupted or inaccessible" });
+        return res.status(400).json({ message: "Only image files are allowed" });
       }
       
       // Check for duplicate files by comparing size and name to prevent multiple uploads
@@ -543,6 +725,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       if (isDuplicate) {
+        console.log("Duplicate file detected, removing");
         try {
           fs.unlinkSync(req.file.path);
         } catch (err) {
@@ -561,6 +744,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const newPhoto = await storage.createCasePhoto(photoData);
+      console.log("Photo saved to database successfully:", newPhoto.id);
       
       // Return the photo data with full URL for immediate access
       const photoWithUrl = {
@@ -575,6 +759,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.file && req.file.path) {
         try {
           fs.unlinkSync(req.file.path);
+          console.log("Cleaned up failed upload file:", req.file.filename);
         } catch (cleanupError) {
           console.error("Error cleaning up failed upload:", cleanupError);
         }
@@ -691,59 +876,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Handle photo upload if a file was uploaded
       if (req.file) {
-        console.log("Saving uploaded photo:", req.file);
+        console.log("Processing uploaded photo:", {
+          filename: req.file.filename,
+          originalname: req.file.originalname,
+          size: req.file.size,
+          mimetype: req.file.mimetype
+        });
         
-        // Validate file before saving to database
-        if (req.file.size >= 100) {
-          try {
-            // Verify the file exists and is readable
-            const stats = fs.statSync(req.file.path);
-            if (stats.isFile() && stats.size === req.file.size) {
-              // Check for potential duplicate by size and mimetype to avoid saving corrupted files
-              if (req.file.mimetype && req.file.mimetype.startsWith('image/')) {
-                const photoData = {
-                  caseId: newCase.id,
-                  fileName: req.file.filename,
-                  originalName: req.file.originalname,
-                  mimeType: req.file.mimetype,
-                  size: req.file.size,
-                  uploadedBy: userId,
-                };
-                
-                await storage.createCasePhoto(photoData);
-                console.log("Photo saved successfully");
-              } else {
-                console.error("Photo file is not a valid image type:", req.file.mimetype);
-                try {
-                  fs.unlinkSync(req.file.path);
-                } catch (cleanupError) {
-                  console.error("Error removing invalid image file:", cleanupError);
-                }
-              }
-            } else {
-              console.error("Photo file verification failed - size mismatch");
-              try {
-                fs.unlinkSync(req.file.path);
-              } catch (cleanupError) {
-                console.error("Error removing corrupted file:", cleanupError);
-              }
-            }
-          } catch (photoError) {
-            console.error("Error saving photo:", photoError);
-            // Clean up the file if database save failed
+        // Enhanced validation: check if file exists on disk and has valid content
+        try {
+          const stats = fs.statSync(req.file.path);
+          console.log("Photo file stats:", { exists: stats.isFile(), diskSize: stats.size, uploadSize: req.file.size });
+          
+          // Check if file exists and sizes match
+          if (!stats.isFile()) {
+            console.error("Photo file is not a valid file");
+            return res.status(400).json({ message: "Invalid photo file upload" });
+          }
+          
+          // Check both multer reported size and actual disk size
+          if (stats.size < 100 || req.file.size < 100) {
+            console.error("Photo file too small - disk size:", stats.size, "upload size:", req.file.size);
             try {
               fs.unlinkSync(req.file.path);
             } catch (cleanupError) {
-              console.error("Error cleaning up failed photo:", cleanupError);
+              console.error("Error removing small photo file:", cleanupError);
             }
+            // Don't fail the case creation, just skip the photo
+            console.log("Skipping photo upload due to small file size");
+          } else if (stats.size !== req.file.size) {
+            console.error("Photo file size mismatch - disk:", stats.size, "upload:", req.file.size);
+            try {
+              fs.unlinkSync(req.file.path);
+            } catch (cleanupError) {
+              console.error("Error removing corrupted photo file:", cleanupError);
+            }
+            // Don't fail the case creation, just skip the photo
+            console.log("Skipping photo upload due to size mismatch");
+          } else if (!req.file.mimetype || !req.file.mimetype.startsWith('image/')) {
+            console.error("Photo file is not a valid image type:", req.file.mimetype);
+            try {
+              fs.unlinkSync(req.file.path);
+            } catch (cleanupError) {
+              console.error("Error removing invalid image file:", cleanupError);
+            }
+            // Don't fail the case creation, just skip the photo
+            console.log("Skipping photo upload due to invalid image type");
+          } else {
+            // File is valid, save to database
+            const photoData = {
+              caseId: newCase.id,
+              fileName: req.file.filename,
+              originalName: req.file.originalname,
+              mimeType: req.file.mimetype,
+              size: req.file.size,
+              uploadedBy: userId,
+            };
+            
+            await storage.createCasePhoto(photoData);
+            console.log("Photo saved successfully to database");
           }
-        } else {
-          console.error("Photo file too small, removing:", req.file.size);
+        } catch (photoError) {
+          console.error("Error processing photo:", photoError);
+          // Clean up the file if processing failed
           try {
             fs.unlinkSync(req.file.path);
           } catch (cleanupError) {
-            console.error("Error removing small photo file:", cleanupError);
+            console.error("Error cleaning up failed photo:", cleanupError);
           }
+          // Don't fail the case creation, just skip the photo
+          console.log("Skipping photo upload due to processing error");
         }
       }
       
