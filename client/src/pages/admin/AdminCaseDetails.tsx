@@ -13,6 +13,16 @@ export default function AdminCaseDetails() {
   const { user: currentUser } = useAuth();
   const [selectedPhoto, setSelectedPhoto] = useState<any>(null);
 
+  const { data: caseData, isLoading: caseLoading } = useQuery({
+    queryKey: [`/api/admin/cases/${caseId}`],
+    enabled: currentUser?.role === "admin", // Only fetch if user is admin
+  });
+
+  const { data: photos, isLoading: photosLoading } = useQuery({
+    queryKey: [`/api/admin/cases/${caseId}/photos`],
+    enabled: currentUser?.role === "admin", // Only fetch if user is admin
+  });
+
   // Check if current user is admin
   if (currentUser?.role !== "admin") {
     return (
@@ -31,14 +41,6 @@ export default function AdminCaseDetails() {
       </MainLayout>
     );
   }
-
-  const { data: caseData, isLoading: caseLoading } = useQuery({
-    queryKey: [`/api/admin/cases/${caseId}`],
-  });
-
-  const { data: photos, isLoading: photosLoading } = useQuery({
-    queryKey: [`/api/admin/cases/${caseId}/photos`],
-  });
 
   const formatAnesthesiaType = (type: string) => {
     switch (type) {

@@ -13,6 +13,11 @@ export default function AllCases() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
 
+  const { data: cases, isLoading } = useQuery({
+    queryKey: ["/api/admin/cases"],
+    enabled: currentUser?.role === "admin", // Only fetch if user is admin
+  });
+
   // Check if current user is admin
   if (currentUser?.role !== "admin") {
     return (
@@ -31,10 +36,6 @@ export default function AllCases() {
       </MainLayout>
     );
   }
-
-  const { data: cases, isLoading } = useQuery({
-    queryKey: ["/api/admin/cases"],
-  });
 
   const formatAnesthesiaType = (type: string) => {
     switch (type) {
