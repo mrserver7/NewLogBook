@@ -192,6 +192,12 @@ export default function AllCases() {
                               {caseItem.asaScore || 'N/A'}
                             </span>
                           </div>
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Anesthesiologist:</span>
+                            <span className="ml-2 text-gray-900 dark:text-gray-100 font-medium">
+                              {caseItem.userEmail || 'Unknown'}
+                            </span>
+                          </div>
                         </div>
                         {(caseItem.diagnosis || caseItem.complications) && (
                           <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
