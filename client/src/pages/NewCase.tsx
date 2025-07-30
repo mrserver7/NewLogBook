@@ -91,7 +91,6 @@ export default function NewCase() {
     inductionMedications: "",
     maintenanceMedications: "",
     postOpMedications: "",
-    casePhoto: null as File | null,
     complications: "",
     notes: "",
 
@@ -121,58 +120,7 @@ export default function NewCase() {
 
   const createCaseMutation = useMutation({
     mutationFn: async (caseData: any) => {
-      // If there's a photo, use FormData for multipart upload
-      if (caseData.casePhoto) {
-        const formDataForUpload = new FormData();
-        
-        // Add all case data except the photo
-        const { casePhoto, ...caseDataWithoutPhoto } = caseData;
-        Object.keys(caseDataWithoutPhoto).forEach(key => {
-          if (caseDataWithoutPhoto[key] !== null && caseDataWithoutPhoto[key] !== undefined) {
-            formDataForUpload.append(key, caseDataWithoutPhoto[key]);
-          }
-        });
-        
-        // Add the photo file
-        formDataForUpload.append('casePhoto', casePhoto);
-        
-        // Use fetch directly for FormData upload
-        const response = await fetch('/api/cases', {
-          method: 'POST',
-          body: formDataForUpload,
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-          
-          // Provide user-friendly error messages instead of raw validation details
-          if (errorData.details && Array.isArray(errorData.details)) {
-            const friendlyMessage = parseValidationErrors(errorData.details);
-            throw new Error(friendlyMessage);
-          }
-          
-          const errorMessage = errorData.message || `HTTP error! status: ${response.status}`;
-          throw new Error(errorMessage);
-        }
-        
-        return await response.json();
-      } else {
-        // Regular JSON request without photo
-        const response = await apiRequest("POST", "/api/cases", caseData);
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-          
-          // Provide user-friendly error messages instead of raw validation details
-          if (errorData.details && Array.isArray(errorData.details)) {
-            const friendlyMessage = parseValidationErrors(errorData.details);
-            throw new Error(friendlyMessage);
-          }
-          
-          const errorMessage = errorData.message || `HTTP error! status: ${response.status}`;
-          throw new Error(errorMessage);
-        }
-        return response.json();
-      }
+      return await apiRequest("POST", "/api/cases", caseData);
     },
     onSuccess: () => {
       toast({
@@ -603,25 +551,6 @@ export default function NewCase() {
                     className="bg-light-elevated dark:bg-dark-elevated border-0"
                     rows={3}
                   />
-                </div>
-
-                <div>
-                  <Label htmlFor="casePhoto">Case Photo (Optional)</Label>
-                  <Input
-                    id="casePhoto"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0] || null;
-                      setFormData({ ...formData, casePhoto: file });
-                    }}
-                    className="bg-light-elevated dark:bg-dark-elevated border-0"
-                  />
-                  {formData.casePhoto && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      Selected: {formData.casePhoto.name}
-                    </p>
-                  )}
                 </div>
 
                 <div>

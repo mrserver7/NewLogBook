@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,23 +26,41 @@ export default function Settings() {
   
   const [contactFormData, setContactFormData] = useState({
     name: "",
-    email: user?.email || "",
+    email: "",
     subject: "",
     message: "",
-  });
-
-  const [userSettings, setUserSettings] = useState({
-    specialty: user?.specialty || "",
-    licenseNumber: user?.licenseNumber || "",
-    institution: user?.institution || "",
-    defaultAnesthesiaType: "",
-    emailNotifications: true,
-    pushNotifications: false,
   });
 
   const { data: preferences } = useQuery({
     queryKey: ["/api/user-preferences"],
   });
+
+  const [userSettings, setUserSettings] = useState({
+    specialty: "",
+    licenseNumber: "",
+    institution: "",
+    defaultAnesthesiaType: "",
+    emailNotifications: true,
+    pushNotifications: false,
+  });
+
+  // Update userSettings when user data or preferences change
+  useEffect(() => {
+    setUserSettings({
+      specialty: user?.specialty || "",
+      licenseNumber: user?.licenseNumber || "",
+      institution: user?.institution || "",
+      defaultAnesthesiaType: preferences?.defaultAnesthesiaType || "",
+      emailNotifications: preferences?.notificationSettings?.emailNotifications ?? true,
+      pushNotifications: preferences?.notificationSettings?.pushNotifications ?? false,
+    });
+    
+    // Update contact form email when user changes
+    setContactFormData(prev => ({
+      ...prev,
+      email: user?.email || "",
+    }));
+  }, [user, preferences]);
 
   const uploadProfilePictureMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -291,7 +309,7 @@ export default function Settings() {
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">{user?.email}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-500">
-                    Role: {user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1)}
+                    Role: {user?.role || 'User'}
                   </p>
                 </div>
               </div>
