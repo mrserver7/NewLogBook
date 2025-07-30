@@ -18,6 +18,8 @@ import Settings from "@/pages/Settings";
 import UserManagement from "@/pages/admin/UserManagement";
 import SystemAnalytics from "@/pages/admin/SystemAnalytics";
 import UserCases from "@/pages/admin/UserCases";
+import AllCases from "@/pages/admin/AllCases";
+import AdminCaseDetails from "@/pages/admin/AdminCaseDetails";
 import Setup from "@/pages/Setup";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -56,6 +58,8 @@ function Router() {
             <Route path="/admin/users" component={() => <ProtectedRoute component={UserManagement} />} />
             <Route path="/admin/analytics" component={() => <ProtectedRoute component={SystemAnalytics} />} />
             <Route path="/admin/user-cases" component={() => <ProtectedRoute component={UserCases} />} />
+            <Route path="/admin/all-cases" component={() => <ProtectedRoute component={AllCases} />} />
+            <Route path="/admin/case-details/:caseId" component={() => <ProtectedRoute component={AdminCaseDetails} />} />
             <Route component={NotFound} />
           </Switch>
           <Toaster />

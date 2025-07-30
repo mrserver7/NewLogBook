@@ -82,6 +82,9 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   getUserStats(): Promise<any>;
   getSystemStats(): Promise<any>;
+  // Admin case operations
+  getAllCases(limit?: number, offset?: number): Promise<any[]>;
+  getAllCasePhotos(caseId: number): Promise<CasePhoto[]>;
   
   // User preferences
   getUserPreferences(userId: string): Promise<UserPreferences | undefined>;
@@ -505,6 +508,26 @@ export class MongoStorage implements IStorage {
       { new: true, upsert: true, setDefaultsOnInsert: true }
     ).lean().exec();
     return doc as any;
+  }
+
+  // Admin case operations
+  async getAllCases(limit?: number, offset?: number): Promise<any[]> {
+    let query = CaseModel.find({}).sort({ createdAt: -1 });
+    
+    if (offset) {
+      query = query.skip(offset);
+    }
+    if (limit) {
+      query = query.limit(limit);
+    }
+    
+    const docs = await query.lean().exec();
+    return docs as any;
+  }
+
+  async getAllCasePhotos(caseId: number): Promise<CasePhoto[]> {
+    const docs = await CasePhotoModel.find({ caseId }).sort({ createdAt: 1 }).lean().exec();
+    return docs as any;
   }
 }
 
