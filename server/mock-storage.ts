@@ -12,8 +12,6 @@ import type {
   Case,
   InsertCaseTemplate,
   CaseTemplate,
-  InsertCasePhoto,
-  CasePhoto,
   InsertUserPreferences,
   UserPreferences,
 } from "@shared/schema";
@@ -26,7 +24,6 @@ class MockStorage implements IStorage {
   private procedures: Map<number, Procedure> = new Map();
   private cases: Map<number, Case> = new Map();
   private caseTemplates: Map<number, CaseTemplate> = new Map();
-  private casePhotos: Map<number, CasePhoto> = new Map();
   private userPreferences: Map<string, UserPreferences> = new Map();
 
   private nextId = 1;
@@ -328,39 +325,6 @@ class MockStorage implements IStorage {
     this.caseTemplates.delete(id);
   }
 
-  // Case photo operations
-  async getCasePhotos(caseId: number): Promise<CasePhoto[]> {
-    return Array.from(this.casePhotos.values()).filter(p => p.caseId === caseId);
-  }
-
-  async getCasePhoto(id: number): Promise<CasePhoto | undefined> {
-    return this.casePhotos.get(id);
-  }
-
-  async createCasePhoto(photo: InsertCasePhoto): Promise<CasePhoto> {
-    const newPhoto: CasePhoto = {
-      ...photo,
-      id: this.nextId++,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.casePhotos.set(newPhoto.id, newPhoto);
-    return newPhoto;
-  }
-
-  async getAllPhotos(): Promise<CasePhoto[]> {
-    return Array.from(this.casePhotos.values())
-      .sort((a, b) => {
-        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return dateA - dateB;
-      });
-  }
-
-  async deleteCasePhoto(id: number): Promise<void> {
-    this.casePhotos.delete(id);
-  }
-
   // User preferences operations
   async getUserPreferences(userId: string): Promise<UserPreferences | undefined> {
     return this.userPreferences.get(userId);
@@ -513,16 +477,6 @@ class MockStorage implements IStorage {
     });
     
     return enrichedCases;
-  }
-
-  async getAllCasePhotos(caseId: number): Promise<CasePhoto[]> {
-    return Array.from(this.casePhotos.values())
-      .filter(photo => photo.caseId === caseId)
-      .sort((a, b) => {
-        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return dateA - dateB;
-      });
   }
 }
 

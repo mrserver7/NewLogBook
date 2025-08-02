@@ -8,8 +8,8 @@ export default function StatsCards() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {[...Array(4)].map((_, i) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {[...Array(3)].map((_, i) => (
           <Card key={i} className="bg-light-surface dark:bg-dark-surface border border-gray-200 dark:border-gray-700">
             <CardContent className="p-6">
               <div className="animate-pulse">
@@ -50,18 +50,10 @@ export default function StatsCards() {
       positive: true,
       gradient: "from-orange-500 to-blue-600",
     },
-    {
-      icon: "fas fa-trophy",
-      value: "98.2%",
-      label: "Success Rate",
-      change: "+0.5%",
-      positive: true,
-      gradient: "from-blue-600 to-orange-500",
-    },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
       {statsCards.map((stat, index) => (
         <Card
           key={index}

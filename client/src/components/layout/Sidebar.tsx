@@ -71,13 +71,6 @@ export default function Sidebar({ className }: SidebarProps) {
         {/* Logo & Brand */}
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 flex items-center justify-center">
-              <img 
-                src="/assets/logo.png" 
-                alt="CaseCurator Logo"
-                className="w-full h-full object-contain"
-              />
-            </div>
             <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-teal-500 bg-clip-text text-transparent">
               CaseCurator
             </span>

@@ -41,6 +41,7 @@ export default function CaseList() {
         description: "Case deleted successfully",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cases/stats"] });
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -72,6 +73,7 @@ export default function CaseList() {
         description: "Case completed successfully",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cases/stats"] });
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {

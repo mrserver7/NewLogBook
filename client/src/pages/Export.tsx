@@ -18,7 +18,6 @@ export default function Export() {
   const [dateRange, setDateRange] = useState("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [includePhotos, setIncludePhotos] = useState(false);
   const [includeNotes, setIncludeNotes] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -32,20 +31,45 @@ export default function Export() {
 
   const exportData = useMutation({
     mutationFn: async (exportConfig: any) => {
-      // This would typically call a backend endpoint to generate the export
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({ success: true, downloadUrl: "#" });
-        }, 2000);
+      const response = await fetch('/api/export', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(exportConfig),
       });
+      
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+      
+      // Get filename from content-disposition header
+      const contentDisposition = response.headers.get('content-disposition') || '';
+      let filename = `export-${new Date().toISOString().split('T')[0]}`;
+      const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+      if (filenameMatch) {
+        filename = filenameMatch[1];
+      }
+      
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      return { success: true, downloadUrl: url };
     },
     onSuccess: (data: any) => {
       toast({
         title: "Export Complete",
-        description: "Your export has been prepared for download",
+        description: "Your file has been downloaded successfully",
       });
-      // In a real app, this would trigger a file download
-      console.log("Export completed:", data);
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -83,7 +107,6 @@ export default function Export() {
       dateRange,
       startDate: dateRange === "custom" ? startDate : null,
       endDate: dateRange === "custom" ? endDate : null,
-      includePhotos,
       includeNotes,
     };
 
@@ -104,13 +127,6 @@ export default function Export() {
       description: "Complete case information including notes and timing",
       formats: ["pdf"],
       icon: "fas fa-file-medical",
-    },
-    {
-      id: "billing",
-      title: "Billing Report",
-      description: "Financial summary with billing codes and estimated fees",
-      formats: ["pdf", "csv"],
-      icon: "fas fa-dollar-sign",
     },
     {
       id: "logbook",
@@ -351,17 +367,6 @@ export default function Export() {
                       Include case notes
                     </Label>
                   </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="includePhotos"
-                      checked={includePhotos}
-                      onCheckedChange={setIncludePhotos}
-                    />
-                    <Label htmlFor="includePhotos" className="text-sm">
-                      Include photos (PDF only)
-                    </Label>
-                  </div>
                 </div>
 
                 <Button
@@ -401,10 +406,6 @@ export default function Export() {
                   <div className="flex justify-between">
                     <span>Notes:</span>
                     <span className="font-medium">{includeNotes ? "Yes" : "No"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Photos:</span>
-                    <span className="font-medium">{includePhotos ? "Yes" : "No"}</span>
                   </div>
                 </div>
               </CardContent>

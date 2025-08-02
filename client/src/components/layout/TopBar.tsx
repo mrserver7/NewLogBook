@@ -3,7 +3,7 @@ import { useThemeContext } from "@/components/ThemeProvider";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Sun, Moon, Bell, Plus, LogOut } from "lucide-react";
+import { Search, Sun, Moon, Plus, LogOut } from "lucide-react";
 
 interface TopBarProps {
   title: string;
@@ -59,16 +59,6 @@ export default function TopBar({ title, subtitle, onNewCase }: TopBarProps) {
             ) : (
               <Moon className="h-4 w-4 text-gray-600" />
             )}
-          </Button>
-
-          {/* Notifications - Hidden on small mobile */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="p-2 rounded-xl bg-light-elevated dark:bg-dark-elevated hover:bg-gray-200 dark:hover:bg-gray-600 relative hidden sm:flex"
-          >
-            <Bell className="h-4 w-4 text-gray-600 dark:text-gray-300" />
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full"></span>
           </Button>
 
           {/* Quick Actions */}
