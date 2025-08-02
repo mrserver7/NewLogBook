@@ -18,7 +18,6 @@ export default function Export() {
   const [dateRange, setDateRange] = useState("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [includePhotos, setIncludePhotos] = useState(false);
   const [includeNotes, setIncludeNotes] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -83,7 +82,6 @@ export default function Export() {
       dateRange,
       startDate: dateRange === "custom" ? startDate : null,
       endDate: dateRange === "custom" ? endDate : null,
-      includePhotos,
       includeNotes,
     };
 
@@ -104,13 +102,6 @@ export default function Export() {
       description: "Complete case information including notes and timing",
       formats: ["pdf"],
       icon: "fas fa-file-medical",
-    },
-    {
-      id: "billing",
-      title: "Billing Report",
-      description: "Financial summary with billing codes and estimated fees",
-      formats: ["pdf", "csv"],
-      icon: "fas fa-dollar-sign",
     },
     {
       id: "logbook",
@@ -351,17 +342,6 @@ export default function Export() {
                       Include case notes
                     </Label>
                   </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="includePhotos"
-                      checked={includePhotos}
-                      onCheckedChange={setIncludePhotos}
-                    />
-                    <Label htmlFor="includePhotos" className="text-sm">
-                      Include photos (PDF only)
-                    </Label>
-                  </div>
                 </div>
 
                 <Button
@@ -401,11 +381,6 @@ export default function Export() {
                   <div className="flex justify-between">
                     <span>Notes:</span>
                     <span className="font-medium">{includeNotes ? "Yes" : "No"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Photos:</span>
-                    <span className="font-medium">{includePhotos ? "Yes" : "No"}</span>
-                  </div>
                 </div>
               </CardContent>
             </Card>

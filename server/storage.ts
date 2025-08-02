@@ -11,8 +11,6 @@ import {
   type Case,
   type InsertCaseTemplate,
   type CaseTemplate,
-  type InsertCasePhoto,
-  type CasePhoto,
   type InsertUserPreferences,
   type UserPreferences,
 } from "@shared/schema";
@@ -25,7 +23,6 @@ import {
   ProcedureModel,
   CaseModel,
   CaseTemplateModel,
-  CasePhotoModel,
   UserPreferencesModel,
 } from './models';
 // Remove Drizzle ORM operators; queries are handled by MongoStorage
@@ -74,9 +71,6 @@ export interface IStorage {
   getCaseTemplates(userId: string): Promise<CaseTemplate[]>;
   createCaseTemplate(template: InsertCaseTemplate): Promise<CaseTemplate>;
   
-  // Case photo operations
-  getCasePhotos(caseId: number): Promise<CasePhoto[]>;
-  createCasePhoto(photoData: InsertCasePhoto): Promise<CasePhoto>;
   
   // Admin operations
   getAllUsers(): Promise<User[]>;
@@ -84,10 +78,6 @@ export interface IStorage {
   getSystemStats(): Promise<any>;
   // Admin case operations
   getAllCases(limit?: number, offset?: number): Promise<any[]>;
-  getAllCasePhotos(caseId: number): Promise<CasePhoto[]>;
-  // Photo management
-  getAllPhotos(): Promise<CasePhoto[]>;
-  deleteCasePhoto(photoId: number): Promise<void>;
   
   // User preferences
   getUserPreferences(userId: string): Promise<UserPreferences | undefined>;
@@ -439,22 +429,6 @@ export class MongoStorage implements IStorage {
     return doc.toObject() as any;
   }
 
-  // Case photo operations
-  async getCasePhotos(caseId: number): Promise<CasePhoto[]> {
-    const docs = await CasePhotoModel.find({ caseId }).sort({ createdAt: 1 }).lean().exec();
-    return docs as any;
-  }
-
-  async createCasePhoto(photoData: InsertCasePhoto): Promise<CasePhoto> {
-    const nextId = (await CasePhotoModel.countDocuments().exec()) + 1;
-    const doc = await CasePhotoModel.create({
-      ...photoData,
-      id: nextId,
-      createdAt: new Date(),
-    } as any);
-    return doc.toObject() as any;
-  }
-
   // Admin operations
   async getAllUsers(): Promise<any[]> {
     const usersList = await UserModel.find({}).lean().exec();
@@ -551,19 +525,6 @@ export class MongoStorage implements IStorage {
     return result;
   }
 
-  async getAllCasePhotos(caseId: number): Promise<CasePhoto[]> {
-    const docs = await CasePhotoModel.find({ caseId }).sort({ createdAt: 1 }).lean().exec();
-    return docs as any;
-  }
-
-  async getAllPhotos(): Promise<CasePhoto[]> {
-    const docs = await CasePhotoModel.find({}).sort({ createdAt: 1 }).lean().exec();
-    return docs as any;
-  }
-
-  async deleteCasePhoto(photoId: number): Promise<void> {
-    await CasePhotoModel.deleteOne({ id: photoId }).exec();
-  }
 }
 
 // Choose the appropriate storage implementation based on the

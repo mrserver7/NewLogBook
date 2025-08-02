@@ -225,32 +225,6 @@ export interface CaseTemplate extends InsertCaseTemplate {
 }
 
 /* ------------------------------------------------------------------ */
-/*                          Case Photo types                          */
-/* ------------------------------------------------------------------ */
-
-/**
- * Schema for creating a case photo record.  The `caseId` is numeric
- * and corresponds to the id of a case document.  Only the fileName is
- * required.  Other metadata fields are optional.
- */
-export const insertCasePhotoSchema = z.object({
-  caseId: z.number().optional(),
-  fileName: z.string(),
-  originalName: z.string().optional(),
-  mimeType: z.string().optional(),
-  size: z.number().optional(),
-  description: z.string().optional(),
-  uploadedBy: z.string().optional(),
-});
-
-export type InsertCasePhoto = z.infer<typeof insertCasePhotoSchema>;
-
-export interface CasePhoto extends InsertCasePhoto {
-  id: number;
-  createdAt?: Date;
-}
-
-/* ------------------------------------------------------------------ */
 /*                      User Preferences types                        */
 /* ------------------------------------------------------------------ */
 
@@ -294,5 +268,4 @@ export const surgeons = {} as any;
 export const procedures = {} as any;
 export const cases = {} as any;
 export const caseTemplates = {} as any;
-export const casePhotos = {} as any;
 export const userPreferences = {} as any;

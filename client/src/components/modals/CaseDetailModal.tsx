@@ -56,18 +56,6 @@ export default function CaseDetailModal({ isOpen, onClose, caseId }: CaseDetailM
     enabled: !!caseDetails?.patientId && isOpen,
   });
 
-  // Fetch case photos
-  const { data: casePhotos } = useQuery({
-    queryKey: ["/api/cases", caseId, "photos"],
-    queryFn: async () => {
-      if (!caseId) return [];
-      const response = await fetch(`/api/cases/${caseId}/photos`);
-      if (!response.ok) return [];
-      return response.json();
-    },
-    enabled: !!caseId && isOpen,
-  });
-
   useEffect(() => {
     if (caseDetails) {
       setEditData({
@@ -149,7 +137,6 @@ export default function CaseDetailModal({ isOpen, onClose, caseId }: CaseDetailM
         weight: undefined,
         height: undefined,
         age: undefined,
-        newPhoto: undefined,
       };
 
       // Update case
@@ -184,17 +171,6 @@ export default function CaseDetailModal({ isOpen, onClose, caseId }: CaseDetailM
         }
       }
 
-      // Handle photo upload if a new photo was selected
-      if (editData.newPhoto) {
-        const formData = new FormData();
-        formData.append('casePhoto', editData.newPhoto);
-        
-        await fetch(`/api/cases/${caseId}/photos`, {
-          method: 'POST',
-          body: formData,
-        });
-      }
-
       toast({
         title: "Success",
         description: "Case updated successfully",
@@ -203,7 +179,6 @@ export default function CaseDetailModal({ isOpen, onClose, caseId }: CaseDetailM
       setIsEditing(false);
       queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases", caseId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cases", caseId, "photos"] });
       queryClient.invalidateQueries({ queryKey: ["/api/patients", caseDetails?.patientId] });
     } catch (error) {
       if (isUnauthorizedError(error as Error)) {
@@ -418,62 +393,6 @@ export default function CaseDetailModal({ isOpen, onClose, caseId }: CaseDetailM
                       )}
                     </div>
                   </div>
-                </div>
-
-                {/* Case Photos */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                    📸 Case Photos
-                  </h3>
-                  
-                  {/* Photo Upload in Edit Mode */}
-                  {isEditing && (
-                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
-                      <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Add New Photo
-                      </Label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0] || null;
-                          setEditData({ ...editData, newPhoto: file });
-                        }}
-                        className="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                      />
-                      {editData.newPhoto && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                          Selected: {editData.newPhoto.name}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  
-                  {/* Existing Photos */}
-                  {casePhotos && casePhotos.length > 0 && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {casePhotos.map((photo: any) => (
-                        <div key={photo.id} className="border rounded-lg overflow-hidden cursor-pointer hover:shadow-lg transition-shadow">
-                          <img 
-                            src={`/api/uploads/${photo.fileName}`}
-                            alt={photo.description || "Case photo"}
-                            className="w-full h-64 object-cover hover:scale-105 transition-transform duration-200"
-                            onClick={() => window.open(`/api/uploads/${photo.fileName}`, '_blank')}
-                          />
-                          {photo.description && (
-                            <div className="p-3 text-sm text-gray-600 dark:text-gray-400">
-                              {photo.description}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  
-                  {/* Show message when no photos exist */}
-                  {(!casePhotos || casePhotos.length === 0) && !isEditing && (
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">No photos uploaded for this case.</p>
-                  )}
                 </div>
 
                 {/* Case Information */}

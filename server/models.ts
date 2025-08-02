@@ -123,20 +123,6 @@ const caseTemplateSchema = new Schema({
 });
 export const CaseTemplateModel = mongoose.model('CaseTemplate', caseTemplateSchema);
 
-// Case Photos
-const casePhotoSchema = new Schema({
-  id: { type: Number, index: true },
-  caseId: { type: Number, index: true },
-  fileName: { type: String, required: true },
-  originalName: { type: String },
-  mimeType: { type: String },
-  size: { type: Number },
-  description: { type: String },
-  uploadedBy: { type: String },
-  createdAt: { type: Date, default: Date.now },
-});
-export const CasePhotoModel = mongoose.model('CasePhoto', casePhotoSchema);
-
 // User Preferences
 const userPreferencesSchema = new Schema({
   id: { type: Number, index: true },
