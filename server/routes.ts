@@ -15,6 +15,230 @@ import {
   insertUserSchema
 } from "@shared/schema";
 
+// Helper functions for export generation
+function generateSummaryReport(cases: any[], format: string, includeNotes: boolean): string {
+  if (format === 'csv') {
+    const headers = ['Case Number', 'Date', 'Patient', 'Procedure', 'Anesthesia Type', 'Duration', 'ASA Score'];
+    if (includeNotes) headers.push('Notes');
+    
+    const rows = cases.map(c => {
+      const row = [
+        c.caseNumber || '',
+        c.caseDate ? new Date(c.caseDate).toLocaleDateString() : '',
+        c.patientName || '',
+        c.customProcedureName || c.procedureName || '',
+        c.anesthesiaType || '',
+        c.caseDuration || '',
+        c.asaScore || ''
+      ];
+      if (includeNotes) row.push((c.notes || '').replace(/"/g, '""'));
+      return row.map(field => `"${field}"`).join(',');
+    });
+    
+    return [headers.map(h => `"${h}"`).join(','), ...rows].join('\n');
+  } else {
+    // HTML format for PDF conversion
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Case Summary Report</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        h1 { color: #333; }
+      </style>
+    </head>
+    <body>
+      <h1>Case Summary Report</h1>
+      <p>Generated on: ${new Date().toLocaleDateString()}</p>
+      <p>Total Cases: ${cases.length}</p>
+      <table>
+        <tr>
+          <th>Case Number</th>
+          <th>Date</th>
+          <th>Patient</th>
+          <th>Procedure</th>
+          <th>Anesthesia Type</th>
+          <th>Duration</th>
+          <th>ASA Score</th>
+          ${includeNotes ? '<th>Notes</th>' : ''}
+        </tr>
+        ${cases.map(c => `
+        <tr>
+          <td>${c.caseNumber || ''}</td>
+          <td>${c.caseDate ? new Date(c.caseDate).toLocaleDateString() : ''}</td>
+          <td>${c.patientName || ''}</td>
+          <td>${c.customProcedureName || c.procedureName || ''}</td>
+          <td>${c.anesthesiaType || ''}</td>
+          <td>${c.caseDuration || ''}</td>
+          <td>${c.asaScore || ''}</td>
+          ${includeNotes ? `<td>${c.notes || ''}</td>` : ''}
+        </tr>
+        `).join('')}
+      </table>
+    </body>
+    </html>`;
+    return html;
+  }
+}
+
+function generateDetailedReport(cases: any[], format: string, includeNotes: boolean): string {
+  if (format === 'csv') {
+    const headers = [
+      'Case Number', 'Date', 'Patient Name', 'Patient ID', 'Age', 'Weight', 'Height',
+      'Procedure', 'Surgeon', 'Anesthesia Type', 'Regional Block', 'ASA Score',
+      'Duration', 'Diagnosis', 'Complications', 'Induction Meds', 'Maintenance Meds', 'Post-Op Meds'
+    ];
+    if (includeNotes) headers.push('Notes');
+    
+    const rows = cases.map(c => {
+      const row = [
+        c.caseNumber || '',
+        c.caseDate ? new Date(c.caseDate).toLocaleDateString() : '',
+        c.patientName || '',
+        c.patientId || '',
+        c.age?.toString() || '',
+        c.weight?.toString() || '',
+        c.height?.toString() || '',
+        c.customProcedureName || c.procedureName || '',
+        c.surgeonName || '',
+        c.anesthesiaType || '',
+        c.regionalBlockType || c.customRegionalBlock || '',
+        c.asaScore || '',
+        c.caseDuration || '',
+        c.diagnosis || '',
+        c.complications || '',
+        c.inductionMedications || '',
+        c.maintenanceMedications || '',
+        c.postOpMedications || ''
+      ];
+      if (includeNotes) row.push((c.notes || '').replace(/"/g, '""'));
+      return row.map(field => `"${field}"`).join(',');
+    });
+    
+    return [headers.map(h => `"${h}"`).join(','), ...rows].join('\n');
+  } else {
+    // HTML format for detailed report
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Detailed Case Report</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .case { border: 1px solid #ddd; margin: 20px 0; padding: 15px; }
+        .case-header { background-color: #f8f9fa; padding: 10px; margin: -15px -15px 15px -15px; }
+        .field { margin: 5px 0; }
+        .label { font-weight: bold; display: inline-block; width: 150px; }
+        h1 { color: #333; }
+      </style>
+    </head>
+    <body>
+      <h1>Detailed Case Report</h1>
+      <p>Generated on: ${new Date().toLocaleDateString()}</p>
+      <p>Total Cases: ${cases.length}</p>
+      ${cases.map(c => `
+      <div class="case">
+        <div class="case-header">
+          <h3>Case ${c.caseNumber || 'N/A'} - ${c.caseDate ? new Date(c.caseDate).toLocaleDateString() : 'No Date'}</h3>
+        </div>
+        <div class="field"><span class="label">Patient:</span> ${c.patientName || 'N/A'} (ID: ${c.patientId || 'N/A'})</div>
+        <div class="field"><span class="label">Age/Weight/Height:</span> ${c.age || 'N/A'}yr, ${c.weight || 'N/A'}kg, ${c.height || 'N/A'}cm</div>
+        <div class="field"><span class="label">Procedure:</span> ${c.customProcedureName || c.procedureName || 'N/A'}</div>
+        <div class="field"><span class="label">Surgeon:</span> ${c.surgeonName || 'N/A'}</div>
+        <div class="field"><span class="label">Anesthesia:</span> ${c.anesthesiaType || 'N/A'}</div>
+        <div class="field"><span class="label">Regional Block:</span> ${c.regionalBlockType || c.customRegionalBlock || 'N/A'}</div>
+        <div class="field"><span class="label">ASA Score:</span> ${c.asaScore || 'N/A'}</div>
+        <div class="field"><span class="label">Duration:</span> ${c.caseDuration || 'N/A'}</div>
+        <div class="field"><span class="label">Diagnosis:</span> ${c.diagnosis || 'N/A'}</div>
+        <div class="field"><span class="label">Complications:</span> ${c.complications || 'None reported'}</div>
+        <div class="field"><span class="label">Induction Meds:</span> ${c.inductionMedications || 'N/A'}</div>
+        <div class="field"><span class="label">Maintenance Meds:</span> ${c.maintenanceMedications || 'N/A'}</div>
+        <div class="field"><span class="label">Post-Op Meds:</span> ${c.postOpMedications || 'N/A'}</div>
+        ${includeNotes && c.notes ? `<div class="field"><span class="label">Notes:</span> ${c.notes}</div>` : ''}
+      </div>
+      `).join('')}
+    </body>
+    </html>`;
+    return html;
+  }
+}
+
+function generateLogbookReport(cases: any[], format: string, includeNotes: boolean): string {
+  // Traditional logbook format
+  const html = `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <title>Digital Logbook</title>
+    <style>
+      body { font-family: Times, serif; margin: 20px; }
+      table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 12px; }
+      th, td { border: 1px solid #000; padding: 4px; text-align: center; }
+      th { background-color: #f0f0f0; font-weight: bold; }
+      h1 { text-align: center; }
+      .signature { margin-top: 50px; }
+    </style>
+  </head>
+  <body>
+    <h1>ANESTHESIA LOGBOOK</h1>
+    <p><strong>Total Cases:</strong> ${cases.length}</p>
+    <p><strong>Date Range:</strong> ${cases.length > 0 ? `${new Date(cases[0].caseDate).toLocaleDateString()} - ${new Date(cases[cases.length - 1].caseDate).toLocaleDateString()}` : 'N/A'}</p>
+    <table>
+      <tr>
+        <th>Date</th>
+        <th>Case #</th>
+        <th>Patient</th>
+        <th>Age</th>
+        <th>Procedure</th>
+        <th>Anesthesia Type</th>
+        <th>ASA</th>
+        <th>Duration</th>
+        <th>Complications</th>
+      </tr>
+      ${cases.map((c, index) => `
+      <tr>
+        <td>${c.caseDate ? new Date(c.caseDate).toLocaleDateString() : ''}</td>
+        <td>${index + 1}</td>
+        <td>${c.patientName || ''}</td>
+        <td>${c.age || ''}</td>
+        <td>${(c.customProcedureName || c.procedureName || '').substring(0, 30)}</td>
+        <td>${c.anesthesiaType || ''}</td>
+        <td>${c.asaScore || ''}</td>
+        <td>${c.caseDuration || ''}</td>
+        <td>${c.complications ? 'Yes' : 'No'}</td>
+      </tr>
+      `).join('')}
+    </table>
+    <div class="signature">
+      <p>Signature: ___________________________ Date: ___________</p>
+    </div>
+  </body>
+  </html>`;
+  return html;
+}
+
+function generateRawDataExport(cases: any[], format: string): string | any {
+  if (format === 'json') {
+    return cases;
+  } else {
+    // CSV with all fields
+    const allFields = new Set<string>();
+    cases.forEach(c => Object.keys(c).forEach(k => allFields.add(k)));
+    const headers = Array.from(allFields);
+    
+    const rows = cases.map(c => 
+      headers.map(h => `"${(c[h] ?? '').toString().replace(/"/g, '""')}"`)
+        .join(',')
+    );
+    
+    return [headers.map(h => `"${h}"`).join(','), ...rows].join('\n');
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
@@ -717,6 +941,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating user preferences:", error);
       res.status(500).json({ message: "Failed to update user preferences" });
+    }
+  });
+
+  // Export endpoints
+  app.post('/api/export', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { format, type, dateRange, startDate, endDate, includeNotes } = req.body;
+      
+      // Get cases based on date range
+      let cases = [];
+      if (dateRange === "custom" && startDate && endDate) {
+        cases = await storage.getCases(userId, { 
+          startDate: new Date(startDate), 
+          endDate: new Date(endDate),
+          limit: 10000 
+        });
+      } else {
+        cases = await storage.getCases(userId, { limit: 10000 });
+      }
+
+      // Generate export data based on type
+      let exportData;
+      const timestamp = new Date().toISOString().split('T')[0];
+      
+      switch (type) {
+        case 'summary':
+          exportData = generateSummaryReport(cases, format, includeNotes);
+          break;
+        case 'detailed':
+          exportData = generateDetailedReport(cases, format, includeNotes);
+          break;
+        case 'logbook':
+          exportData = generateLogbookReport(cases, format, includeNotes);
+          break;
+        case 'raw':
+          exportData = generateRawDataExport(cases, format);
+          break;
+        default:
+          return res.status(400).json({ message: "Invalid export type" });
+      }
+
+      // Set appropriate headers for download
+      const filename = `${type}-report-${timestamp}.${format}`;
+      
+      if (format === 'csv') {
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.send(exportData);
+      } else if (format === 'json') {
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.json(exportData);
+      } else if (format === 'pdf') {
+        // For PDF, we'll send HTML that can be converted to PDF on the client side
+        res.setHeader('Content-Type', 'text/html');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename.replace('.pdf', '.html')}"`);
+        res.send(exportData);
+      } else {
+        return res.status(400).json({ message: "Invalid export format" });
+      }
+      
+    } catch (error) {
+      console.error("Error generating export:", error);
+      res.status(500).json({ message: "Failed to generate export" });
     }
   });
 
