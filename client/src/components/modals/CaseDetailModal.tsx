@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ProcedureSelector } from "@/components/ui/procedure-selector";
 import { AnesthesiaSelector } from "@/components/ui/anesthesia-selector";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -63,7 +64,11 @@ export default function CaseDetailModal({ isOpen, onClose, caseId }: CaseDetailM
         patientId: caseDetails.patientId || "",
         caseDuration: caseDetails.caseDuration || "",
         surgeonName: caseDetails.surgeonName || "",
-        procedureId: caseDetails.procedureId?.toString() || "",
+        procedure: {
+          procedureId: caseDetails.procedureId || undefined,
+          customProcedureName: caseDetails.customProcedureName || undefined,
+          category: caseDetails.procedureCategory || undefined
+        },
         anesthesiaType: caseDetails.anesthesiaType || "",
         regionalBlockType: caseDetails.regionalBlockType || "",
         customRegionalBlock: caseDetails.customRegionalBlock || "",
@@ -127,7 +132,9 @@ export default function CaseDetailModal({ isOpen, onClose, caseId }: CaseDetailM
       // Update case data
       const caseUpdateData = {
         ...editData,
-        procedureId: editData.procedureId ? parseInt(editData.procedureId) : null,
+        procedureId: editData.procedure?.procedureId || null,
+        customProcedureName: editData.procedure?.customProcedureName || null,
+        procedureCategory: editData.procedure?.category || null,
         startTime: editData.startTime && editData.caseDate ? new Date(`${editData.caseDate}T${editData.startTime}`) : null,
         endTime: editData.endTime && editData.caseDate ? new Date(`${editData.caseDate}T${editData.endTime}`) : null,
         inductionTime: editData.inductionTime && editData.caseDate ? new Date(`${editData.caseDate}T${editData.inductionTime}`) : null,
@@ -137,6 +144,7 @@ export default function CaseDetailModal({ isOpen, onClose, caseId }: CaseDetailM
         weight: undefined,
         height: undefined,
         age: undefined,
+        procedure: undefined, // Remove the procedure object itself
       };
 
       // Update case
@@ -146,8 +154,8 @@ export default function CaseDetailModal({ isOpen, onClose, caseId }: CaseDetailM
       if (caseDetails?.patientId && (editData.weight || editData.height || editData.age || editData.patientName)) {
         const patientUpdateData: any = {};
         
-        if (editData.weight) patientUpdateData.weight = editData.weight;
-        if (editData.height) patientUpdateData.height = editData.height;
+        if (editData.weight) patientUpdateData.weight = parseFloat(editData.weight);
+        if (editData.height) patientUpdateData.height = parseFloat(editData.height);
         if (editData.age) patientUpdateData.age = parseInt(editData.age);
         
         if (Object.keys(patientUpdateData).length > 0) {
@@ -276,7 +284,11 @@ export default function CaseDetailModal({ isOpen, onClose, caseId }: CaseDetailM
                           patientId: caseDetails.patientId || "",
                           caseDuration: caseDetails.caseDuration || "",
                           surgeonName: caseDetails.surgeonName || "",
-                          procedureId: caseDetails.procedureId?.toString() || "",
+                          procedure: {
+                            procedureId: caseDetails.procedureId || undefined,
+                            customProcedureName: caseDetails.customProcedureName || undefined,
+                            category: caseDetails.procedureCategory || undefined
+                          },
                           anesthesiaType: caseDetails.anesthesiaType || "",
                           asaScore: caseDetails.asaScore || "",
                           caseDate: caseDetails.caseDate || "",
@@ -417,18 +429,13 @@ export default function CaseDetailModal({ isOpen, onClose, caseId }: CaseDetailM
                     <div>
                       <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Procedure</Label>
                       {isEditing ? (
-                        <Select value={editData.procedureId} onValueChange={(value) => setEditData({ ...editData, procedureId: value })}>
-                          <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Select procedure..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {procedures && Array.isArray(procedures) ? procedures.map((procedure: any) => (
-                              <SelectItem key={procedure.id} value={procedure.id.toString()}>
-                                {procedure.name}
-                              </SelectItem>
-                            )) : null}
-                          </SelectContent>
-                        </Select>
+                        <div className="mt-1">
+                          <ProcedureSelector
+                            value={editData.procedure}
+                            onChange={(value) => setEditData({ ...editData, procedure: value })}
+                            placeholder="Select procedure..."
+                          />
+                        </div>
                       ) : (
                         <div className="mt-1">
                           <p className="text-gray-900 dark:text-gray-100">
